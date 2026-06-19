@@ -1,0 +1,19 @@
+{
+  "src": [
+    "pages/home/Index",
+    "pages/auth/Guide",
+    "pages/auth/Login",
+    "pages/home/Home",
+    "pages/life/TodoFloat",
+    "pages/info/NewsDetail",
+    "pages/info/InfoDetail",
+    "pages/study/CourseEdit",
+    "pages/life/LostPublish",
+    "pages/auth/ForgotPassword",
+    "pages/profile/ProfileEdit",
+    "pages/info/MessageCenter",
+    "pages/profile/Settings",
+    "pages/info/WeatherDetail",
+    "pages/life/MusicList"
+  ]
+}

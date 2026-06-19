@@ -1,0 +1,627 @@
+import router from '@ohos.router';
+import { picker } from '@kit.CoreFileKit';
+import { window } from '@kit.ArkUI';
+import { media } from '@kit.MediaKit';
+import { AppColors } from '../../common/constants/AppColors';
+import { ThemeUtil } from '../../common/utils/ThemeUtil';
+import { LostItem, FoodItem, SongItem } from '../../common/constants/DataModels';
+import { DataManager } from '../../utils/DataManager';
+
+/**
+ * 生活服务Tab内容组件
+ * 从独立页面改为组件内嵌，由Home主容器通过Tabs切换
+ */
+
+@Component
+export struct LifeContent {
+  @Prop darkMode: boolean = false;
+  @Prop fontScale: number = 1.0;
+  @State tab: string = '失物招领';
+  @State searchText: string = '';
+  @State refreshing: boolean = false;
+
+  // 失物招领
+  @State lostFilterType: string = '全部';
+  @State lostFilterCat: string = '全部';
+  @State lostItems: LostItem[] = [
+    { title: '黑色校园卡', type: '失物', category: '校园卡', place: '一食堂二楼', time: '今天 12:20', desc: '黑色卡面，有校徽图案', phone: '138****2026', imageUri: '' },
+    { title: '蓝色雨伞', type: '拾物', category: '衣物', place: '图书馆门口', time: '昨天 18:30', desc: '深蓝色长柄伞', phone: '156****0918', imageUri: '' },
+    { title: '无线耳机盒', type: '失物', category: '电子产品', place: '信工楼 A306', time: '周一 10:00', desc: '白色充电盒', phone: '188****6621', imageUri: '' },
+    { title: '校园卡一张', type: '拾物', category: '校园卡', place: '操场篮球场', time: '周二 16:00', desc: '普通蓝色校园卡', phone: '139****5523', imageUri: '' },
+    { title: '双肩背包', type: '失物', category: '书包', place: '二食堂', time: '周三 11:30', desc: '灰色双肩包', phone: '150****7788', imageUri: '' }
+  ];
+
+  // 校园美食
+  @State foodFilter: string = '全部';
+  @State foods: FoodItem[] = [
+    { name: '香辣鸡腿饭', place: '一食堂二楼', feature: '微辣、出餐快、配小菜', score: 5, collected: true, imageUri: '' },
+    { name: '番茄牛腩面', place: '二食堂窗口6', feature: '汤底浓郁、牛腩软烂', score: 4, collected: false, imageUri: '' },
+    { name: '轻食沙拉碗', place: '新食堂', feature: '低脂、可自选配料', score: 4, collected: false, imageUri: '' },
+    { name: '红烧排骨饭', place: '一食堂一楼', feature: '排骨软烂、酱香浓郁', score: 5, collected: true, imageUri: '' },
+    { name: '麻辣香锅', place: '校园小吃街', feature: '自选菜、麻辣鲜香', score: 4, collected: false, imageUri: '' }
+  ];
+  @State foodImageUri: string = '';
+
+  // 音乐播放器
+  @State playing: boolean = false;
+  @State selectedSong: number = 0;
+  @State currentProgress: number = 0;
+  @State hasAudioFile: boolean = false;
+  @State floatWindowOn: boolean = false;
+  @State songs: SongItem[] = [
+    { name: 'Campus Morning', singer: 'Local Demo', duration: 226, uri: '' },
+    { name: 'Library Light', singer: 'Harmony Band', duration: 242, uri: '' },
+    { name: 'After Class', singer: 'Student Mix', duration: 178, uri: '' }
+  ];
+  private progressTimer: number = 0;
+  private avPlayer?: media.AVPlayer;
+  private isAVPlayerReady: boolean = false;
+  private avDuration: number = 0;
+  private musicFloatWindow?: window.Window;
+
+  private lostFilters: string[] = ['全部', '失物', '拾物', '校园卡', '电子产品'];
+  private foodCategories: string[] = ['全部', '中餐', '面食', '轻食', '小吃'];
+
+  async aboutToAppear(): Promise<void> {
+    console.info('LifeContent aboutToAppear');
+    try {
+      const savedLost = await DataManager.loadLostItems();
+      if (savedLost && (savedLost as LostItem[]).length > 0) this.lostItems = savedLost as LostItem[];
+      const savedFoods = await DataManager.loadFoods();
+      if (savedFoods && (savedFoods as FoodItem[]).length > 0) this.foods = savedFoods as FoodItem[];
+    } catch (e) {
+      console.error('LifeContent aboutToAppear error: ' + JSON.stringify(e));
+    }
+  }
+
+  async aboutToDisappear(): Promise<void> {
+    console.info('LifeContent aboutToDisappear');
+    this.stopProgress();
+    if (this.avPlayer) {
+      try {
+        await this.avPlayer.stop();
+        await this.avPlayer.release();
+      } catch (_) {}
+      this.avPlayer = undefined;
+    }
+    this.closeMusicFloatWindow();
+    DataManager.saveLostItems(this.lostItems);
+    DataManager.saveFoods(this.foods);
+  }
+
+  build() {
+    Column() {
+      // 导航栏（无返回箭头，白色背景）
+      Row() {
+        Text('生活服务').fontSize(30 * this.fontScale).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode)).lineHeight(30 * this.fontScale * AppColors.LINE_HEIGHT_TITLE_L)
+      }
+      .width('100%').padding({ left: 20, right: 20, top: 14, bottom: 10 }).backgroundColor(ThemeUtil.cardBg(this.darkMode))
+
+      Refresh({ refreshing: $$this.refreshing }) {
+        Scroll() {
+          Column({ space: 16 }) {
+            this.EntryGrid()
+            if (this.tab === '失物招领') this.LostAndFound()
+            else if (this.tab === '校园美食') this.FoodList()
+            else if (this.tab === '音乐播放') this.MusicPlayer()
+            else this.ToolsPanel()
+          }
+          .width('100%').padding({ left: 20, right: 20, top: 12, bottom: 18 })
+        }
+        .scrollBar(BarState.Off)
+      }
+      .onRefreshing(() => {
+        this.refreshing = true;
+        setTimeout(() => {
+          this.refreshing = false;
+          try { this.getUIContext()?.getPromptAction()?.showToast({ message: '刷新完成' }); } catch (_) {}
+        }, 1500);
+      })
+      .refreshOffset(64).layoutWeight(1)
+    }
+    .width('100%').height('100%')
+  }
+
+  // ===== 2行×2列分类入口 =====
+  @Builder EntryGrid() {
+    Grid() {
+      GridItem() { this.EntryCard('失物招领', '📋') }
+      GridItem() { this.EntryCard('校园美食', '🍜') }
+      GridItem() { this.EntryCard('音乐播放', '🎵') }
+      GridItem() { this.EntryCard('校园工具', '🔧') }
+    }
+    .columnsTemplate('1fr 1fr').columnsGap('2%').rowsGap(12).width('100%')
+  }
+
+  @Builder EntryCard(label: string, icon: string) {
+    Column({ space: 10 }) {
+      Text(icon).fontSize(48)
+      Text(label).fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
+    }
+    .width('100%').height(120)
+    .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+    .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+    .border({ width: this.tab === label ? 2 : 1, color: this.tab === label ? AppColors.PRIMARY : AppColors.BORDER })
+    .onClick(() => { this.tab = label; })
+  }
+
+  // ===== 失物招领 =====
+  @Builder
+  SwipeDeleteButton() {
+    Button('删除').fontColor(AppColors.BG_CARD).backgroundColor(AppColors.WARNING)
+  }
+
+  @Builder LostAndFound() {
+    Column({ space: 12 }) {
+      // 发布按钮（暖橙48px圆角8px）
+      Button('📋 发布信息')
+        .height(48).fontSize(26).fontColor(AppColors.BG_CARD)
+        .backgroundColor(AppColors.WARNING).borderRadius(8).width('100%')
+        .onClick(() => router.pushUrl({ url: 'pages/life/LostPublish' }))
+
+      // 搜索栏
+      Row({ space: 12 }) {
+        Text('🔍').fontSize(24).fontColor(AppColors.PRIMARY)
+        TextInput({ text: this.searchText, placeholder: '搜索物品/地点/描述' })
+          .fontSize(24).backgroundColor(Color.Transparent).layoutWeight(1)
+          .onChange((v: string) => this.searchText = v)
+      }
+      .height(48).padding({ left: 16, right: 16 }).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(24)
+
+      // 筛选标签（一行：全部/失物/拾物/校园卡/电子产品）
+      Scroll() {
+        Row({ space: 8 }) {
+          ForEach(this.lostFilters, (f: string) => {
+            Text(f).fontSize(22)
+              .fontColor(
+                ((f === '失物' || f === '拾物') && this.lostFilterType === f) ||
+                ((f === '校园卡' || f === '电子产品') && this.lostFilterCat === f) ||
+                (f === '全部' && this.lostFilterType === '全部' && this.lostFilterCat === '全部')
+                  ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
+              .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+              .backgroundColor(
+                ((f === '失物' || f === '拾物') && this.lostFilterType === f) ? AppColors.PRIMARY :
+                ((f === '校园卡' || f === '电子产品') && this.lostFilterCat === f) ? AppColors.WARNING :
+                (f === '全部' && this.lostFilterType === '全部' && this.lostFilterCat === '全部') ? AppColors.PRIMARY :
+                AppColors.DIVIDER)
+              .borderRadius(16)
+              .onClick(() => {
+                if (f === '全部') { this.lostFilterType = '全部'; this.lostFilterCat = '全部'; }
+                else if (f === '失物' || f === '拾物') { this.lostFilterType = f; this.lostFilterCat = '全部'; }
+                else { this.lostFilterCat = f; this.lostFilterType = '全部'; }
+              })
+          })
+        }
+      }
+      .scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Off)
+
+      // 物品列表（64x64图片+名称+时间+地点）
+      List() {
+        ForEach(this.getFilteredLostItems(), (item: LostItem, idx: number) => {
+          ListItem() {
+            Row({ space: 12 }) {
+              Image(item.imageUri || $r('app.media.foreground'))
+                .width(64).height(64).objectFit(ImageFit.Cover).borderRadius(8).backgroundColor('#F5F5F5')
+              Column({ space: 4 }) {
+                Row() {
+                  Text(item.title).fontSize(26 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode)).lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
+                  Text(item.type).fontSize(22)
+                    .fontColor(item.type === '失物' ? AppColors.WARNING : AppColors.SUCCESS)
+                    .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+                    .backgroundColor(item.type === '失物' ? AppColors.WARNING_LIGHT : AppColors.SUCCESS_LIGHT).borderRadius(4).margin({ left: 8 })
+                }
+                Text(`${item.place} · ${item.time}`).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                Text(`📞 ${item.phone}`).fontSize(22).fontColor(AppColors.PRIMARY)
+              }
+              .alignItems(HorizontalAlign.Start).layoutWeight(1)
+            }
+            .padding(14).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+          }
+          .margin({ bottom: 10 })
+          .swipeAction({
+            end: {
+              builder: this.SwipeDeleteButton,
+              onAction: () => { this.lostItems.splice(idx, 1); this.getUIContext()?.getPromptAction()?.showToast({ message: '已删除' }); }
+            }
+          })
+        })
+      }
+      .width('100%').height(420).scrollBar(BarState.Off)
+    }
+  }
+
+  private getFilteredLostItems(): LostItem[] {
+    let arr = [...this.lostItems];
+    if (this.lostFilterType !== '全部') arr = arr.filter((i: LostItem) => i.type === this.lostFilterType);
+    else if (this.lostFilterCat !== '全部') arr = arr.filter((i: LostItem) => i.category === this.lostFilterCat);
+    if (this.searchText.trim()) {
+      const kw = this.searchText.trim().toLowerCase();
+      arr = arr.filter((i: LostItem) => i.title.toLowerCase().includes(kw) || i.place.toLowerCase().includes(kw) || i.desc.toLowerCase().includes(kw));
+    }
+    return arr;
+  }
+
+  // ===== 校园美食 =====
+  @Builder FoodList() {
+    Column({ space: 12 }) {
+      // 推荐 + 上传图片
+      Row({ space: 8 }) {
+        Button('+ 推荐美食').height(48).fontSize(26).fontColor(AppColors.BG_CARD)
+          .backgroundColor(AppColors.WARNING).borderRadius(8).layoutWeight(1)
+          .onClick(() => {
+            this.foods.unshift({ name: '新推荐美食', place: '校园美食街', feature: '特色美味', score: 3, collected: false, imageUri: this.foodImageUri });
+            this.foodImageUri = '';
+            this.getUIContext()?.getPromptAction()?.showToast({ message: '已模拟添加美食推荐' });
+          })
+        Button('📷 上传图片').height(48).fontSize(24).fontColor(AppColors.PRIMARY)
+          .backgroundColor(AppColors.PRIMARY_LIGHT).borderRadius(8).padding({ left: 14, right: 14 })
+          .onClick(() => this.pickFoodImage())
+      }
+
+      if (this.foodImageUri.length > 0) {
+        Row({ space: 8 }) {
+          Image($r('app.media.foreground')).width(72).height(72).objectFit(ImageFit.Cover).borderRadius(6)
+          Text('点击上方按钮推荐美食').fontSize(22).fontColor(ThemeUtil.subColor(this.darkMode))
+        }
+      }
+
+      // 分类筛选
+      Scroll() {
+        Row({ space: 8 }) {
+          ForEach(this.foodCategories, (cat: string) => {
+            Text(cat).fontSize(22)
+              .fontColor(cat === this.foodFilter ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
+              .padding({ left: 14, right: 14, top: 6, bottom: 6 })
+              .backgroundColor(cat === this.foodFilter ? AppColors.WARNING : AppColors.WARNING_LIGHT).borderRadius(16)
+              .onClick(() => this.foodFilter = cat)
+          })
+        }
+      }
+      .scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Off)
+
+      // 美食列表（图片150px+名称+食堂+评分+右侧收藏按钮）
+      List() {
+        ForEach(this.foods, (food: FoodItem, idx: number) => {
+          ListItem() {
+            Column({ space: 8 }) {
+              Image(food.imageUri || $r('app.media.background'))
+                .width('100%').height(150).objectFit(ImageFit.Cover).borderRadius(8)
+
+              Row() {
+                Column({ space: 4 }) {
+                  Text(food.name).fontSize(26 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode)).lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
+                  Text(`${food.place} · ${food.feature}`).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                }
+                .alignItems(HorizontalAlign.Start).layoutWeight(1)
+                Column({ space: 4 }) {
+                  this.StarRating(food.score, idx)
+                  // 收藏按钮（右侧）
+                  Text(food.collected ? '❤' : '🤍').fontSize(28)
+                    .onClick(() => {
+                      this.foods[idx].collected = !this.foods[idx].collected;
+                      this.getUIContext()?.getPromptAction()?.showToast({ message: food.collected ? '已收藏' : '已取消收藏' });
+                    })
+                }
+                .alignItems(HorizontalAlign.Center)
+              }
+            }
+            .padding(14).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+          }
+          .margin({ bottom: 12 })
+        })
+      }
+      .width('100%').height(480).scrollBar(BarState.Off)
+    }
+  }
+
+  @Builder StarRating(score: number, idx: number) {
+    Row({ space: 2 }) {
+      ForEach([1, 2, 3, 4, 5], (star: number) => {
+        Text(star <= score ? '★' : '☆').fontSize(26).fontColor(AppColors.WARNING)
+          .onClick(() => {
+            this.foods[idx].score = star;
+            this.getUIContext()?.getPromptAction()?.showToast({ message: `已评分 ${star} 星` });
+          })
+      })
+    }
+  }
+
+  private pickFoodImage(): void {
+    try {
+      const docPicker = new picker.DocumentViewPicker();
+      const options = new picker.DocumentSelectOptions();
+      options.maxSelectNumber = 1;
+      docPicker.select(options).then((uris: string[]) => {
+        if (uris && uris.length > 0) { this.foodImageUri = uris[0]; this.getUIContext()?.getPromptAction()?.showToast({ message: '美食图片已选择' }); }
+      }).catch(() => { this.foodImageUri = 'local_food_' + Date.now(); this.getUIContext()?.getPromptAction()?.showToast({ message: '已模拟选择美食图片' }); });
+    } catch (_) { this.foodImageUri = 'local_food_' + Date.now(); this.getUIContext()?.getPromptAction()?.showToast({ message: '已模拟选择美食图片' }); }
+  }
+
+  // ===== 音乐播放器 =====
+  @Builder MusicPlayer() {
+    Column({ space: 16 }) {
+      // 上半部分：专辑封面180px圆形旋转
+      Column({ space: 12 }) {
+        Image($r('app.media.logo'))
+          .width(180).height(180).borderRadius(90)
+          .rotate({ angle: this.playing ? 360 : 0 })
+          .backgroundColor('#F0F5FF')
+          .animation({ duration: 8000, curve: Curve.Linear, iterations: this.playing ? -1 : 1, playMode: PlayMode.Normal })
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Center)
+
+      // 下半部分
+      Column({ space: 14 }) {
+        // 歌曲信息（28sp歌名+24sp歌手居中）
+        Column({ space: 4 }) {
+          Text(this.songs[this.selectedSong].name)
+            .fontSize(28 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode)).textAlign(TextAlign.Center).lineHeight(28 * this.fontScale * AppColors.LINE_HEIGHT_TITLE_M)
+          Text(this.songs[this.selectedSong].singer)
+            .fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode)).textAlign(TextAlign.Center)
+        }
+
+        // 进度条（鸿蒙蓝+左右时间）
+        Column({ space: 4 }) {
+          Slider({ value: this.currentProgress, min: 0, max: this.songs[this.selectedSong].duration })
+            .blockColor(AppColors.PRIMARY).trackColor('#DCE9FF').selectedColor(AppColors.PRIMARY).width('100%')
+            .onChange(async (v: number) => {
+              this.currentProgress = v;
+              if (this.avPlayer && this.isAVPlayerReady) {
+                try {
+                  await this.avPlayer.seek(v * 1000);
+                } catch (_) {}
+              }
+            })
+          Row() {
+            Text(this.formatTime(this.currentProgress)).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+            Blank()
+            Text(this.formatTime(this.songs[this.selectedSong].duration)).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+          }
+          .width('100%')
+        }
+
+        // 控制按钮（40px鸿蒙蓝间距32px）
+        Row({ space: 32 }) {
+          Text('⏮').fontSize(40).fontColor(AppColors.PRIMARY).onClick(() => this.prevSong())
+          Text(this.playing ? '⏸' : '▶️').fontSize(40).fontColor(AppColors.PRIMARY).onClick(() => this.togglePlay())
+          Text('⏭').fontSize(40).fontColor(AppColors.PRIMARY).onClick(() => this.nextSong())
+        }
+
+        // 本地音乐按钮
+        Button(this.hasAudioFile ? '本地音乐' : '导入音频')
+          .height(36).fontSize(24)
+          .fontColor(this.hasAudioFile ? AppColors.BG_CARD : AppColors.PRIMARY)
+          .backgroundColor(this.hasAudioFile ? AppColors.SUCCESS : AppColors.PRIMARY_LIGHT).borderRadius(8)
+          .onClick(() => router.pushUrl({ url: 'pages/life/MusicList', params: { songs: this.songs } }))
+
+        // 播放列表
+        Column({ space: 0 }) {
+          Text('播放列表')
+            .fontSize(26 * this.fontScale).fontWeight(FontWeight.Medium).fontColor(ThemeUtil.titleColor(this.darkMode))
+            .alignSelf(ItemAlign.Start).margin({ top: 10, bottom: 10 })
+          ForEach(this.songs, (song: SongItem, si: number) => {
+            Row() {
+              Text(si === this.selectedSong && this.playing ? '🎵' : '🎶').fontSize(24)
+              Column({ space: 4 }) {
+                Text(song.name).fontSize(24 * this.fontScale).fontWeight(FontWeight.Medium)
+                  .fontColor(si === this.selectedSong ? AppColors.PRIMARY : ThemeUtil.titleColor(this.darkMode)).lineHeight(24 * this.fontScale * AppColors.LINE_HEIGHT_AUX)
+                Text(song.singer).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+              }
+              .alignItems(HorizontalAlign.Start).margin({ left: 10 }).layoutWeight(1)
+              Text(this.formatTime(song.duration)).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+            }
+            .width('100%').padding({ top: 10, bottom: 10 })
+            .border({ width: { bottom: si < this.songs.length - 1 ? 1 : 0 }, color: AppColors.DIVIDER })
+            .onClick(() => { this.selectSong(si); })
+          })
+        }
+
+        // 悬浮窗开关
+        Button(this.floatWindowOn ? '关闭悬浮窗播放' : '开启悬浮窗播放')
+          .height(48).fontSize(26)
+          .fontColor(this.floatWindowOn ? AppColors.BG_CARD : AppColors.PRIMARY)
+          .backgroundColor(this.floatWindowOn ? AppColors.PRIMARY : AppColors.PRIMARY_LIGHT).borderRadius(8).width('100%')
+          .onClick(() => {
+            this.floatWindowOn = !this.floatWindowOn;
+            if (this.floatWindowOn) this.showMusicFloatWindow();
+            else { this.closeMusicFloatWindow(); this.getUIContext()?.getPromptAction()?.showToast({ message: '已关闭悬浮窗播放' }); }
+          })
+      }
+      .width('100%')
+    }
+    .width('100%').padding(20).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8).alignItems(HorizontalAlign.Center)
+  }
+
+  private async togglePlay(): Promise<void> {
+    if (this.avPlayer && this.isAVPlayerReady) {
+      try {
+        if (this.playing) {
+          await this.avPlayer.pause();
+          this.playing = false;
+        } else {
+          await this.avPlayer.play();
+          this.playing = true;
+        }
+      } catch (e) {
+        this.playing = !this.playing;
+        if (this.playing) this.simulateProgress(); else this.stopProgress();
+      }
+    } else {
+      // 无AVPlayer或未就绪，使用模拟
+      this.playing = !this.playing;
+      if (this.playing) this.simulateProgress(); else this.stopProgress();
+    }
+  }
+
+  private async prevSong(): Promise<void> {
+    this.stopProgress();
+    this.selectedSong = (this.selectedSong + this.songs.length - 1) % this.songs.length;
+    this.currentProgress = 0;
+    if (this.playing) {
+      const song = this.songs[this.selectedSong];
+      if (song.uri) {
+        await this.loadAndPlay(song.uri);
+      } else {
+        this.simulateProgress();
+      }
+    }
+  }
+
+  private async nextSong(): Promise<void> {
+    this.stopProgress();
+    this.selectedSong = (this.selectedSong + 1) % this.songs.length;
+    this.currentProgress = 0;
+    if (this.playing) {
+      const song = this.songs[this.selectedSong];
+      if (song.uri) {
+        await this.loadAndPlay(song.uri);
+      } else {
+        this.simulateProgress();
+      }
+    }
+  }
+
+  private async selectSong(index: number): Promise<void> {
+    this.stopProgress();
+    this.selectedSong = index;
+    this.currentProgress = 0;
+    this.playing = true;
+    const song = this.songs[this.selectedSong];
+    if (song.uri) {
+      await this.loadAndPlay(song.uri);
+    } else {
+      this.simulateProgress();
+    }
+  }
+
+  private pickAudioFile(): void {
+    try {
+      const docPicker = new picker.DocumentViewPicker();
+      const options = new picker.DocumentSelectOptions();
+      options.maxSelectNumber = 1;
+      docPicker.select(options).then(async (uris: string[]) => {
+        if (uris && uris.length > 0) {
+          this.hasAudioFile = true;
+          const uri = uris[0];
+          this.songs.unshift({ name: '本地曲目 ' + (this.songs.length + 1), singer: '本地文件', duration: 200, uri: uri });
+          this.selectedSong = 0;
+          this.currentProgress = 0;
+          this.playing = true;
+          await this.loadAndPlay(uri);
+          this.getUIContext()?.getPromptAction()?.showToast({ message: '已加载本地音频文件' });
+        }
+      }).catch(() => { this.hasAudioFile = true; this.getUIContext()?.getPromptAction()?.showToast({ message: '已模拟加载本地音频' }); });
+    } catch (_) { this.hasAudioFile = true; this.getUIContext()?.getPromptAction()?.showToast({ message: '已模拟加载本地音频文件' }); }
+  }
+
+  private async initAVPlayer(): Promise<void> {
+    if (this.avPlayer) return;
+    try {
+      this.avPlayer = await media.createAVPlayer();
+      this.avPlayer.on('stateChange', (state: string) => {
+        if (state === 'prepared') {
+          this.isAVPlayerReady = true;
+          this.avDuration = this.avPlayer?.duration ?? 0;
+          // 更新当前歌曲的duration
+          if (this.avDuration > 0) {
+            this.songs[this.selectedSong].duration = Math.floor(this.avDuration / 1000);
+          }
+        } else if (state === 'completed') {
+          this.playing = false;
+          this.nextSong();
+        } else if (state === 'stopped' || state === 'released') {
+          this.isAVPlayerReady = false;
+        }
+      });
+      this.avPlayer.on('timeUpdate', (time: number) => {
+        this.currentProgress = Math.floor(time / 1000);
+      });
+      this.avPlayer.on('error', () => {
+        this.isAVPlayerReady = false;
+      });
+    } catch (e) {
+      console.error('initAVPlayer error: ' + JSON.stringify(e));
+    }
+  }
+
+  private async loadAndPlay(uri: string): Promise<void> {
+    await this.initAVPlayer();
+    if (!this.avPlayer) return;
+    try {
+      this.avPlayer.url = uri;
+      await this.avPlayer.prepare();
+      await this.avPlayer.play();
+      this.playing = true;
+    } catch (e) {
+      console.error('loadAndPlay error: ' + JSON.stringify(e));
+      // 回退到模拟播放
+      this.simulateProgress();
+    }
+  }
+
+  private simulateProgress(): void {
+    this.stopProgress();
+    this.progressTimer = setInterval(() => {
+      if (!this.playing) { this.stopProgress(); return; }
+      this.currentProgress += 1;
+      if (this.currentProgress >= this.songs[this.selectedSong].duration) {
+        this.currentProgress = 0;
+        this.selectedSong = (this.selectedSong + 1) % this.songs.length;
+      }
+    }, 1000);
+  }
+
+  private stopProgress(): void {
+    if (this.progressTimer !== 0) { clearInterval(this.progressTimer); this.progressTimer = 0; }
+  }
+
+  private formatTime(seconds: number): string {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  private async showMusicFloatWindow(): Promise<void> {
+    try {
+      if (this.musicFloatWindow) { await this.musicFloatWindow.destroyWindow(); this.musicFloatWindow = undefined; }
+      const song = this.songs[this.selectedSong];
+      this.musicFloatWindow = await window.createWindow({ name: 'music_float', windowType: window.WindowType.TYPE_FLOAT });
+      await this.musicFloatWindow.setUIContent('pages/life/TodoFloat');
+      await this.musicFloatWindow.showWindow();
+      this.getUIContext()?.getPromptAction()?.showToast({ message: `音乐悬浮窗已开启\n正在播放：${song.name} - ${song.singer}` });
+    } catch (_) { this.getUIContext()?.getPromptAction()?.showToast({ message: '悬浮窗播放已模拟开启' }); }
+  }
+
+  private async closeMusicFloatWindow(): Promise<void> {
+    try { if (this.musicFloatWindow) { await this.musicFloatWindow.destroyWindow(); this.musicFloatWindow = undefined; } } catch (_) { }
+  }
+
+  // ===== 校园工具 =====
+  @Builder ToolsPanel() {
+    Grid() {
+      ForEach(['倒计时', '计算器', '快递查询', '校历'], (name: string) => {
+        GridItem() {
+          Column({ space: 8 }) {
+            Text(this.getToolIcon(name)).fontSize(36)
+            Text(name).fontSize(24 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
+          }
+          .width('100%').height(100).justifyContent(FlexAlign.Center)
+          .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+          .onClick(() => this.getUIContext()?.getPromptAction()?.showToast({ message: `打开工具：${name}` }))
+        }
+      })
+    }
+    .columnsTemplate('1fr 1fr').columnsGap(12).rowsGap(12)
+  }
+
+  private getToolIcon(name: string): string {
+    switch (name) {
+      case '倒计时': return '⏰';
+      case '计算器': return '🧮';
+      case '快递查询': return '📦';
+      case '校历': return '📅';
+      default: return '🔧';
+    }
+  }
+}

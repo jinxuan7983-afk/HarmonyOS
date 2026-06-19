@@ -1,0 +1,44 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "高校校园助手APP - 基于HarmonyOS NEXT的校园综合服务应用"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "高校校园助手主入口"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "高校校园助手"
+    },
+    {
+      "name": "app_subtitle",
+      "value": "HarmonyOS NEXT 版"
+    },
+    {
+      "name": "tab_home",
+      "value": "首页"
+    },
+    {
+      "name": "tab_info",
+      "value": "校园信息"
+    },
+    {
+      "name": "tab_study",
+      "value": "学习助手"
+    },
+    {
+      "name": "tab_life",
+      "value": "生活服务"
+    },
+    {
+      "name": "tab_profile",
+      "value": "我的"
+    },
+    {
+      "name": "notification_permission_reason",
+      "value": "用于发送课程提醒通知，帮助您及时了解即将开始的课程"
+    }
+  ]
+}
