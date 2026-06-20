@@ -57,15 +57,17 @@ export struct StudyContent {
 
   async aboutToAppear(): Promise<void> {
     console.info('StudyContent aboutToAppear');
-    // 加载当前用户学号
     const userInfo = await DataManager.loadUserInfo();
     this.studentId = userInfo.account;
+    const savedCourses = await DataManager.loadCourses();
+    if (savedCourses && (savedCourses as CourseItem[]).length > 0) {
+      this.courses = savedCourses as CourseItem[];
+    }
   }
 
-  aboutToDisappear(): void {
+  async aboutToDisappear(): Promise<void> {
     console.info('StudyContent aboutToDisappear');
-    // 持久化课程数据
-    DataManager.saveJsonFile('courses.json', this.courses);
+    await DataManager.saveJsonFile('courses.json', this.courses);
   }
 
   private tabs: string[] = ['课程表', '成绩查询', '图书馆检索', '学习资料'];
@@ -160,8 +162,8 @@ export struct StudyContent {
         .layoutWeight(1).height(48).justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
         .onClick(() => this.tab = item)
-      })
-    }
+       })
+     }
     .width('100%').backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
   }
 
@@ -223,7 +225,7 @@ export struct StudyContent {
                     params: { mode: 'edit', course: course, courseIndex: globalIdx }
                   });
                 })
-              })
+              }, (course: CourseItem) => course.name + course.time)
             }
             .width('100%').padding({ top: 10, bottom: 10 })
             .border({ width: { bottom: 1 }, color: this.darkMode ? AppColors.BG_DARK_DIVIDER : AppColors.DIVIDER })
@@ -297,12 +299,12 @@ export struct StudyContent {
               }
               .alignItems(HorizontalAlign.End)
             }
-            .width('100%').padding(16).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
-          }
-          .margin({ bottom: 10 })
-        })
-      }
-      .width('100%').height(360).scrollBar(BarState.Off)
+             .width('100%').padding(16).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+           }
+           .margin({ bottom: 10 })
+         }, (grade: GradeItem) => grade.name + grade.examTime)
+       }
+       .width('100%').height(360).scrollBar(BarState.Off)
     }
   }
 
@@ -365,14 +367,21 @@ export struct StudyContent {
               Text(this.getBookStatusIcon(book.status))
                 .fontSize(28)
                 .fontColor(book.status === 'saved' ? AppColors.WARNING : ThemeUtil.subColor(this.darkMode))
-                .onClick(() => this.getUIContext()?.getPromptAction()?.showToast({ message: '已收藏' }))
+                .onClick(() => {
+                  if (book.status === 'saved') {
+                    book.status = 'none';
+                  } else {
+                    book.status = 'saved';
+                  }
+                  this.getUIContext()?.getPromptAction()?.showToast({ message: book.status === 'saved' ? '已收藏' : '已取消收藏' });
+                })
             }
             .width('100%').padding(16).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
           }
-          .margin({ bottom: 10 })
-        })
-      }
-      .width('100%').height(380).scrollBar(BarState.Off)
+           .margin({ bottom: 10 })
+         }, (book: BookItem) => book.name + book.isbn)
+       }
+       .width('100%').height(380).scrollBar(BarState.Off)
     }
   }
 
@@ -413,9 +422,9 @@ export struct StudyContent {
             .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
             .onClick(() => this.getUIContext()?.getPromptAction()?.showToast({ message: `${m.name}：查看详情` }))
           }
-        })
-      }
-      .columnsTemplate('1fr 1fr')
+         }, (m: MaterialItem) => m.name)
+       }
+       .columnsTemplate('1fr 1fr')
       .rowsGap(12).columnsGap(12)
 
       Button('上传本地资料').width('100%').height(48).fontSize(26 * this.fontScale)

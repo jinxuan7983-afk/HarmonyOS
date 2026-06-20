@@ -69,6 +69,8 @@ struct ProfileEdit {
           .backgroundColor(AppColors.PRIMARY).borderRadius(8)
           .onClick(() => {
             DataManager.saveUserInfo(this.nickname, this.studentId, this.college, this.major);
+            DataManager.saveAvatarUri(this.avatarUri);
+            AppStorage.setOrCreate('profileUpdated', Date.now());
             this.getUIContext()?.getPromptAction()?.showToast({ message: '个人信息已保存' });
             router.back();
           })

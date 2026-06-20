@@ -24,6 +24,7 @@ struct MessageCenter {
     { title: '社团活动：换届选举通知', content: '羽毛球社团新一届干事选举将于下周三举行。', time: '06-06 14:00', type: '活动', read: true },
     { title: '成绩已更新', content: '软件工程课程期末成绩已发布，请登录查看。', time: '06-05 10:00', type: '成绩', read: true }
   ];
+  @State msgVersion: number = 0;
 
   build() {
     Column() {
@@ -36,14 +37,15 @@ struct MessageCenter {
         Text('全部已读')
           .fontSize(24).fontColor(AppColors.PRIMARY)
           .onClick(() => {
-            this.messages.forEach((m: MessageItem) => m.read = true);
+             this.messages.forEach((m: MessageItem) => m.read = true);
+             this.msgVersion += 1;
             this.getUIContext()?.getPromptAction()?.showToast({ message: '全部标为已读' });
           })
       }
       .width('100%').height(52).padding({ left: 16, right: 16 }).backgroundColor(AppColors.BG_CARD)
 
       List() {
-        ForEach(this.messages, (msg: MessageItem) => {
+         ForEach(this.messages, (msg: MessageItem) => {
           ListItem() {
             Row({ space: 12 }) {
               // 未读蓝点
@@ -77,12 +79,13 @@ struct MessageCenter {
             }
             .width('100%').padding(16)
             .onClick(() => {
-              msg.read = true;
+               msg.read = true;
+              this.msgVersion += 1;
               this.getUIContext()?.getPromptAction()?.showToast({ message: msg.title });
             })
           }
           .border({ width: { bottom: 0.5 }, color: AppColors.DIVIDER })
-        })
+         }, (msg: MessageItem) => msg.title + msg.time)
       }
       .width('100%').layoutWeight(1).scrollBar(BarState.Off).backgroundColor(AppColors.BG_CARD)
     }

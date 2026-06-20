@@ -1,4 +1,5 @@
 import router from '@ohos.router';
+import preferences from '@ohos.data.preferences';
 import { AppColors } from '../../common/constants/AppColors';
 
 /**
@@ -112,7 +113,7 @@ struct ForgotPassword {
             .fontColor(this.canReset() ? AppColors.BG_CARD : AppColors.TEXT_SECONDARY)
             .backgroundColor(this.canReset() ? AppColors.PRIMARY : AppColors.PRIMARY_BG)
             .borderRadius(8)
-            .onClick(() => {
+            .onClick(async () => {
               if (!this.canReset()) {
                 this.getUIContext()?.getPromptAction()?.showToast({ message: '请填写完整信息' });
                 return;
@@ -126,6 +127,11 @@ struct ForgotPassword {
                 return;
               }
               this.getUIContext()?.getPromptAction()?.showToast({ message: '密码重置成功' });
+              try {
+                const prefs = await preferences.getPreferences(getContext(this), 'user_info');
+                await prefs.put('password', this.newPassword);
+                await prefs.flush();
+              } catch (_) {}
               router.back();
             })
         }

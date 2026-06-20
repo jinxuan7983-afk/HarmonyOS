@@ -4,15 +4,20 @@
  */
 import { AppColors } from '../../common/constants/AppColors';
 import { TodoItem } from '../../common/constants/DataModels';
+import window from '@ohos.window';
 
 @Entry
 @Component
 struct TodoFloat {
-  @State todos: TodoItem[] = [
-    { title: '完成移动开发实验报告', done: false },
-    { title: '18:30 去图书馆还书', done: false },
-    { title: '整理课程表演示数据', done: true }
-  ];
+  @StorageLink('floatTodos') todos: TodoItem[] = [];
+  @State todoVersion: number = 0;
+
+  async aboutToAppear(): Promise<void> {
+    try {
+      const win = await window.getLastWindow(getContext(this));
+      win.setWindowLayoutFullScreen(true);
+    } catch (_) {}
+  }
 
   build() {
     Column() {
@@ -27,8 +32,11 @@ struct TodoFloat {
           .width(16)
           .height(16)
           .fillColor(AppColors.BG_CARD)
-          .onClick(() => {
-            this.getUIContext()?.getPromptAction()?.showToast({ message: '悬浮窗已关闭' });
+          .onClick(async () => {
+            try {
+              const win = await window.getLastWindow(getContext(this));
+              await win.destroyWindow();
+            } catch (_) {}
           })
       }
       .width('100%')

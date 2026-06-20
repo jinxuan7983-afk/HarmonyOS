@@ -109,10 +109,11 @@ struct MusicList {
               .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 })
             }
             .onClick(() => {
-              // 返回播放页并传递选中的歌曲索引
+              const realIdx = this.songs.indexOf(song);
+              AppStorage.setOrCreate('musicSelectedIndex', realIdx >= 0 ? realIdx : index);
               router.back();
-            })
-          })
+             })
+           }, (song: SongItem, index: number) => song.name + String(index))
         }
         .width('100%').layoutWeight(1).scrollBar(BarState.Off)
         .margin({ top: 12 })

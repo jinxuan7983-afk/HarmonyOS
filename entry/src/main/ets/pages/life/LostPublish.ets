@@ -2,6 +2,7 @@ import router from '@ohos.router';
 import { picker } from '@kit.CoreFileKit';
 import { AppColors } from '../../common/constants/AppColors';
 import { LostItem } from '../../common/constants/DataModels';
+import { DataManager } from '../../utils/DataManager';
 
 /**
  * 【3.5.1 失物/拾物发布页】
@@ -134,7 +135,7 @@ struct LostPublish {
                     .width(20).height(20).textAlign(TextAlign.Center)
                     .backgroundColor('#33000000').borderRadius(10)
                     .position({ x: 48, y: -6 })
-                    .onClick(() => {
+            .onClick(async () => {
                       const idx = this.imageUris.indexOf(uri);
                       if (idx >= 0) this.imageUris.splice(idx, 1);
                     })
@@ -162,7 +163,7 @@ struct LostPublish {
             .width('100%').height(48).fontSize(18).fontColor(AppColors.BG_CARD)
             .backgroundColor(this.publishType === '失物' ? AppColors.WARNING : AppColors.SUCCESS)
             .borderRadius(8)
-            .onClick(() => {
+            .onClick(async () => {
               if (!this.title.trim()) { this.getUIContext()?.getPromptAction()?.showToast({ message: '请输入物品名称' }); return; }
               if (!this.place.trim()) { this.getUIContext()?.getPromptAction()?.showToast({ message: '请输入地点' }); return; }
               if (!this.phone.trim()) { this.getUIContext()?.getPromptAction()?.showToast({ message: '请输入联系电话' }); return; }
@@ -177,6 +178,10 @@ struct LostPublish {
                 phone: this.phone.trim(),
                 imageUri: this.imageUris.length > 0 ? this.imageUris[0] : ''
               };
+              const savedItems = await DataManager.loadLostItems();
+              savedItems.unshift(item);
+              await DataManager.saveLostItems(savedItems);
+              this.getUIContext()?.getPromptAction()?.showToast({ message: '发布成功' });
               router.back();
             })
         }

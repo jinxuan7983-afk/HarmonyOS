@@ -12,6 +12,7 @@ import { util } from '@kit.ArkTS';
 const USER_PREFS = 'user_info';
 const APP_PREFS = 'app_settings';
 const TODO_PREFS = 'todo_data';
+const TODO_FULL_PREFS = 'todo_full_data';
 
 // JSON 文件名
 const FILE_COURSES = 'courses.json';
@@ -122,6 +123,27 @@ export class DataManager {
     } catch (_err) {
       return [];
     }
+  }
+
+  static async saveTodosFull(todos: object[]): Promise<void> {
+    await DataManager.saveString(TODO_FULL_PREFS, 'todos_json', JSON.stringify(todos));
+  }
+
+  static async loadTodosFull(): Promise<object[]> {
+    const jsonStr: string = await DataManager.loadString(TODO_FULL_PREFS, 'todos_json', '[]');
+    try {
+      return JSON.parse(jsonStr);
+    } catch (_err) {
+      return [];
+    }
+  }
+
+  static async saveAvatarUri(uri: string): Promise<void> {
+    await DataManager.saveString(USER_PREFS, 'avatarUri', uri);
+  }
+
+  static async loadAvatarUri(): Promise<string> {
+    return await DataManager.loadString(USER_PREFS, 'avatarUri', '');
   }
 
   /**

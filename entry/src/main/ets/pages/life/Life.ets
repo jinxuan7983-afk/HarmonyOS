@@ -2,6 +2,7 @@ import router from '@ohos.router';
 import { picker } from '@kit.CoreFileKit';
 import { window } from '@kit.ArkUI';
 import { media } from '@kit.MediaKit';
+import { resourceManager } from '@kit.LocalizationKit';
 import { AppColors } from '../../common/constants/AppColors';
 import { ThemeUtil } from '../../common/utils/ThemeUtil';
 import { LostItem, FoodItem, SongItem } from '../../common/constants/DataModels';
@@ -43,16 +44,21 @@ export struct LifeContent {
   @State foodImageUri: string = '';
 
   // 音乐播放器
-  @State playing: boolean = false;
-  @State selectedSong: number = 0;
-  @State currentProgress: number = 0;
+  @StorageLink('musicPlaying') playing: boolean = false;
+  @StorageLink('musicSelectedIndex') @Watch('onMusicSelected') selectedSong: number = 0;
+  @StorageLink('musicProgress') currentProgress: number = 0;
+  @StorageLink('musicSongName') musicSongName: string = '';
+  @StorageLink('musicSinger') musicSinger: string = '';
+  @StorageLink('musicDuration') musicDuration: number = 0;
   @State hasAudioFile: boolean = false;
   @State floatWindowOn: boolean = false;
   @State songs: SongItem[] = [
-    { name: 'Campus Morning', singer: 'Local Demo', duration: 226, uri: '' },
-    { name: 'Library Light', singer: 'Harmony Band', duration: 242, uri: '' },
-    { name: 'After Class', singer: 'Student Mix', duration: 178, uri: '' }
+    { name: 'Campus Morning', singer: 'Local Demo', duration: 10, uri: 'campus_morning.wav' },
+    { name: 'Library Light', singer: 'Harmony Band', duration: 10, uri: 'library_light.wav' },
+    { name: 'After Class', singer: 'Student Mix', duration: 10, uri: 'after_class.wav' }
   ];
+  @State foodVersion: number = 0;
+  @State lostVersion: number = 0;
   private progressTimer: number = 0;
   private avPlayer?: media.AVPlayer;
   private isAVPlayerReady: boolean = false;
@@ -61,6 +67,15 @@ export struct LifeContent {
 
   private lostFilters: string[] = ['全部', '失物', '拾物', '校园卡', '电子产品'];
   private foodCategories: string[] = ['全部', '中餐', '面食', '轻食', '小吃'];
+  private lastMusicIndex: number = -1;
+
+  onMusicSelected(): void {
+    if (this.selectedSong === this.lastMusicIndex) return;
+    this.lastMusicIndex = this.selectedSong;
+    if (this.selectedSong >= 0 && this.selectedSong < this.songs.length) {
+      this.selectSong(this.selectedSong);
+    }
+  }
 
   async aboutToAppear(): Promise<void> {
     console.info('LifeContent aboutToAppear');
@@ -72,10 +87,10 @@ export struct LifeContent {
     } catch (e) {
       console.error('LifeContent aboutToAppear error: ' + JSON.stringify(e));
     }
+    this.syncMusicState();
   }
 
   async aboutToDisappear(): Promise<void> {
-    console.info('LifeContent aboutToDisappear');
     this.stopProgress();
     if (this.avPlayer) {
       try {
@@ -85,8 +100,8 @@ export struct LifeContent {
       this.avPlayer = undefined;
     }
     this.closeMusicFloatWindow();
-    DataManager.saveLostItems(this.lostItems);
-    DataManager.saveFoods(this.foods);
+    await DataManager.saveLostItems(this.lostItems);
+    await DataManager.saveFoods(this.foods);
   }
 
   build() {
@@ -197,34 +212,37 @@ export struct LifeContent {
 
       // 物品列表（64x64图片+名称+时间+地点）
       List() {
-        ForEach(this.getFilteredLostItems(), (item: LostItem, idx: number) => {
-          ListItem() {
-            Row({ space: 12 }) {
-              Image(item.imageUri || $r('app.media.foreground'))
-                .width(64).height(64).objectFit(ImageFit.Cover).borderRadius(8).backgroundColor('#F5F5F5')
-              Column({ space: 4 }) {
-                Row() {
-                  Text(item.title).fontSize(26 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode)).lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
-                  Text(item.type).fontSize(22)
-                    .fontColor(item.type === '失物' ? AppColors.WARNING : AppColors.SUCCESS)
-                    .padding({ left: 8, right: 8, top: 2, bottom: 2 })
-                    .backgroundColor(item.type === '失物' ? AppColors.WARNING_LIGHT : AppColors.SUCCESS_LIGHT).borderRadius(4).margin({ left: 8 })
-                }
-                Text(`${item.place} · ${item.time}`).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
-                Text(`📞 ${item.phone}`).fontSize(22).fontColor(AppColors.PRIMARY)
-              }
-              .alignItems(HorizontalAlign.Start).layoutWeight(1)
-            }
-            .padding(14).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
-          }
-          .margin({ bottom: 10 })
-          .swipeAction({
-            end: {
-              builder: this.SwipeDeleteButton,
-              onAction: () => { this.lostItems.splice(idx, 1); this.getUIContext()?.getPromptAction()?.showToast({ message: '已删除' }); }
-            }
-          })
-        })
+         ForEach(this.getFilteredLostItems(), (item: LostItem, idx: number) => {
+           ListItem() {
+             Row({ space: 12 }) {
+               Image(item.imageUri || $r('app.media.foreground'))
+                 .width(64).height(64).objectFit(ImageFit.Cover).borderRadius(8).backgroundColor('#F5F5F5')
+               Column({ space: 4 }) {
+                 Row() {
+                   Text(item.title).fontSize(26 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode)).lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
+                   Text(item.type).fontSize(22)
+                     .fontColor(item.type === '失物' ? AppColors.WARNING : AppColors.SUCCESS)
+                     .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+                     .backgroundColor(item.type === '失物' ? AppColors.WARNING_LIGHT : AppColors.SUCCESS_LIGHT).borderRadius(4).margin({ left: 8 })
+                 }
+                 Text(`${item.place} · ${item.time}`).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                 Text(`📞 ${item.phone}`).fontSize(22).fontColor(AppColors.PRIMARY)
+               }
+               .alignItems(HorizontalAlign.Start).layoutWeight(1)
+             }
+             .padding(14).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+           }
+           .margin({ bottom: 10 })
+           .swipeAction({
+             end: {
+               builder: this.SwipeDeleteButton,
+               onAction: () => {
+                 const realIdx = this.lostItems.indexOf(item);
+                 if (realIdx >= 0) { this.lostItems.splice(realIdx, 1); this.lostVersion += 1; this.getUIContext()?.getPromptAction()?.showToast({ message: '已删除' }); }
+               }
+             }
+           })
+         }, (item: LostItem) => item.title + item.time)
       }
       .width('100%').height(420).scrollBar(BarState.Off)
     }
@@ -281,7 +299,7 @@ export struct LifeContent {
 
       // 美食列表（图片150px+名称+食堂+评分+右侧收藏按钮）
       List() {
-        ForEach(this.foods, (food: FoodItem, idx: number) => {
+         ForEach(this.foods, (food: FoodItem, idx: number) => {
           ListItem() {
             Column({ space: 8 }) {
               Image(food.imageUri || $r('app.media.background'))
@@ -299,7 +317,8 @@ export struct LifeContent {
                   Text(food.collected ? '❤' : '🤍').fontSize(28)
                     .onClick(() => {
                       this.foods[idx].collected = !this.foods[idx].collected;
-                      this.getUIContext()?.getPromptAction()?.showToast({ message: food.collected ? '已收藏' : '已取消收藏' });
+                      this.foodVersion += 1;
+                      this.getUIContext()?.getPromptAction()?.showToast({ message: this.foods[idx].collected ? '已收藏' : '已取消收藏' });
                     })
                 }
                 .alignItems(HorizontalAlign.Center)
@@ -308,7 +327,7 @@ export struct LifeContent {
             .padding(14).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
           }
           .margin({ bottom: 12 })
-        })
+         }, (food: FoodItem) => food.name)
       }
       .width('100%').height(480).scrollBar(BarState.Off)
     }
@@ -414,7 +433,7 @@ export struct LifeContent {
             .width('100%').padding({ top: 10, bottom: 10 })
             .border({ width: { bottom: si < this.songs.length - 1 ? 1 : 0 }, color: AppColors.DIVIDER })
             .onClick(() => { this.selectSong(si); })
-          })
+           }, (song: SongItem) => song.name)
         }
 
         // 悬浮窗开关
@@ -434,23 +453,27 @@ export struct LifeContent {
   }
 
   private async togglePlay(): Promise<void> {
-    if (this.avPlayer && this.isAVPlayerReady) {
-      try {
-        if (this.playing) {
+    if (this.playing) {
+      if (this.avPlayer && this.isAVPlayerReady) {
+        try {
           await this.avPlayer.pause();
-          this.playing = false;
-        } else {
-          await this.avPlayer.play();
-          this.playing = true;
-        }
-      } catch (e) {
-        this.playing = !this.playing;
-        if (this.playing) this.simulateProgress(); else this.stopProgress();
+        } catch (_) {}
       }
+      this.playing = false;
+      this.stopProgress();
     } else {
-      // 无AVPlayer或未就绪，使用模拟
-      this.playing = !this.playing;
-      if (this.playing) this.simulateProgress(); else this.stopProgress();
+      this.playing = true;
+      this.syncMusicState();
+      const song = this.songs[this.selectedSong];
+      await this.playSong(song);
+    }
+  }
+
+  private syncMusicState(): void {
+    if (this.selectedSong >= 0 && this.selectedSong < this.songs.length) {
+      this.musicSongName = this.songs[this.selectedSong].name;
+      this.musicSinger = this.songs[this.selectedSong].singer;
+      this.musicDuration = this.songs[this.selectedSong].duration;
     }
   }
 
@@ -458,13 +481,9 @@ export struct LifeContent {
     this.stopProgress();
     this.selectedSong = (this.selectedSong + this.songs.length - 1) % this.songs.length;
     this.currentProgress = 0;
+    this.syncMusicState();
     if (this.playing) {
-      const song = this.songs[this.selectedSong];
-      if (song.uri) {
-        await this.loadAndPlay(song.uri);
-      } else {
-        this.simulateProgress();
-      }
+      await this.playSong(this.songs[this.selectedSong]);
     }
   }
 
@@ -472,13 +491,9 @@ export struct LifeContent {
     this.stopProgress();
     this.selectedSong = (this.selectedSong + 1) % this.songs.length;
     this.currentProgress = 0;
+    this.syncMusicState();
     if (this.playing) {
-      const song = this.songs[this.selectedSong];
-      if (song.uri) {
-        await this.loadAndPlay(song.uri);
-      } else {
-        this.simulateProgress();
-      }
+      await this.playSong(this.songs[this.selectedSong]);
     }
   }
 
@@ -487,10 +502,39 @@ export struct LifeContent {
     this.selectedSong = index;
     this.currentProgress = 0;
     this.playing = true;
-    const song = this.songs[this.selectedSong];
-    if (song.uri) {
+    this.syncMusicState();
+    await this.playSong(this.songs[this.selectedSong]);
+  }
+
+  private async playSong(song: SongItem): Promise<void> {
+    if (song.uri && !song.uri.startsWith('/')) {
+      await this.playRawfile(song.uri);
+    } else if (song.uri && song.uri.startsWith('/')) {
       await this.loadAndPlay(song.uri);
     } else {
+      this.simulateProgress();
+    }
+  }
+
+  private async playRawfile(fileName: string): Promise<void> {
+    try {
+      await this.initAVPlayer();
+      if (!this.avPlayer) {
+        this.simulateProgress();
+        return;
+      }
+      if (this.isAVPlayerReady) {
+        await this.avPlayer.stop();
+        this.isAVPlayerReady = false;
+      }
+      const context = getContext(this);
+      const rawFd = await context.resourceManager.getRawFd(fileName);
+      this.avPlayer.fdSrc = { fd: rawFd.fd, offset: rawFd.offset, length: rawFd.length };
+      await this.avPlayer.prepare();
+      await this.avPlayer.play();
+      this.playing = true;
+    } catch (e) {
+      console.error('playRawfile error: ' + JSON.stringify(e));
       this.simulateProgress();
     }
   }
@@ -523,14 +567,14 @@ export struct LifeContent {
         if (state === 'prepared') {
           this.isAVPlayerReady = true;
           this.avDuration = this.avPlayer?.duration ?? 0;
-          // 更新当前歌曲的duration
           if (this.avDuration > 0) {
             this.songs[this.selectedSong].duration = Math.floor(this.avDuration / 1000);
           }
         } else if (state === 'completed') {
+          this.isAVPlayerReady = false;
           this.playing = false;
           this.nextSong();
-        } else if (state === 'stopped' || state === 'released') {
+        } else if (state === 'stopped' || state === 'released' || state === 'idle') {
           this.isAVPlayerReady = false;
         }
       });
@@ -547,15 +591,21 @@ export struct LifeContent {
 
   private async loadAndPlay(uri: string): Promise<void> {
     await this.initAVPlayer();
-    if (!this.avPlayer) return;
+    if (!this.avPlayer) {
+      this.simulateProgress();
+      return;
+    }
     try {
+      if (this.isAVPlayerReady) {
+        await this.avPlayer.stop();
+        this.isAVPlayerReady = false;
+      }
       this.avPlayer.url = uri;
       await this.avPlayer.prepare();
       await this.avPlayer.play();
       this.playing = true;
     } catch (e) {
       console.error('loadAndPlay error: ' + JSON.stringify(e));
-      // 回退到模拟播放
       this.simulateProgress();
     }
   }
@@ -568,6 +618,7 @@ export struct LifeContent {
       if (this.currentProgress >= this.songs[this.selectedSong].duration) {
         this.currentProgress = 0;
         this.selectedSong = (this.selectedSong + 1) % this.songs.length;
+        this.syncMusicState();
       }
     }, 1000);
   }
@@ -586,8 +637,12 @@ export struct LifeContent {
     try {
       if (this.musicFloatWindow) { await this.musicFloatWindow.destroyWindow(); this.musicFloatWindow = undefined; }
       const song = this.songs[this.selectedSong];
-      this.musicFloatWindow = await window.createWindow({ name: 'music_float', windowType: window.WindowType.TYPE_FLOAT });
-      await this.musicFloatWindow.setUIContent('pages/life/TodoFloat');
+      this.musicFloatWindow = await window.createWindow({
+        name: 'music_float',
+        windowType: window.WindowType.TYPE_FLOAT,
+        ctx: getContext(this)
+      });
+      await this.musicFloatWindow.setUIContent('pages/life/MusicFloat');
       await this.musicFloatWindow.showWindow();
       this.getUIContext()?.getPromptAction()?.showToast({ message: `音乐悬浮窗已开启\n正在播放：${song.name} - ${song.singer}` });
     } catch (_) { this.getUIContext()?.getPromptAction()?.showToast({ message: '悬浮窗播放已模拟开启' }); }

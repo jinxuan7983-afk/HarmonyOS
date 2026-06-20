@@ -45,6 +45,11 @@ struct Home {
     { title: '18:30 去图书馆还书', done: false },
     { title: '整理课程表演示数据', done: true }
   ];
+  @State todoVersion: number = 0;
+
+  private syncFloatTodos(): void {
+    AppStorage.setOrCreate('floatTodos', this.todos.filter((t: TodoItem) => !t.done));
+  }
 
   async aboutToAppear(): Promise<void> {
     console.info('Home页面 aboutToAppear');
@@ -54,12 +59,11 @@ struct Home {
     if (savedTodos.length > 0) {
       this.todos = savedTodos as TodoItem[];
     }
+    AppStorage.setOrCreate('floatTodos', this.todos.filter((t: TodoItem) => !t.done));
   }
 
   aboutToDisappear(): void {
     console.info('Home页面 aboutToDisappear');
-    // 持久化待办
-    DataManager.saveTodos(this.todos);
   }
 
   @State actions: QuickAction[] = [
@@ -308,9 +312,9 @@ struct Home {
               }
             })
           }
-        })
-      }
-      .columnsTemplate('1fr 1fr 1fr 1fr')
+         }, (item: QuickAction) => item.title)
+       }
+       .columnsTemplate('1fr 1fr 1fr 1fr')
       .rowsGap(16)
       .columnsGap(8)
     }
@@ -340,7 +344,7 @@ struct Home {
       .width('100%')
 
       // 公告列表
-      ForEach(this.allNews.slice(0, this.newsCount), (item: NewsItem) => {
+        ForEach(this.allNews.slice(0, this.newsCount), (item: NewsItem, index: number) => {
         Column({ space: 6 }) {
           Text(item.title)
             .fontSize(26 * this.fontScale)
@@ -373,10 +377,10 @@ struct Home {
           });
         })
 
-        if (item !== this.allNews.slice(0, this.newsCount)[this.newsCount - 1]) {
+        if (index < this.newsCount - 1) {
           Divider().color(AppColors.DIVIDER).strokeWidth(1)
-        }
-      })
+         }
+       }, (item: NewsItem) => item.title + item.time)
 
       // 上拉加载更多
       if (this.newsCount < this.allNews.length) {
@@ -455,7 +459,7 @@ struct Home {
           }
           .width('100%')
           .padding({ top: 4, bottom: 4 })
-        })
+         }, (course: CourseItem) => course.name + course.time)
       }
     }
     .width('100%')
@@ -491,6 +495,7 @@ struct Home {
             }
             this.todos.unshift({ title: this.todoInput.trim(), done: false });
             this.todoInput = '';
+            this.syncFloatTodos();
             this.getUIContext()?.getPromptAction()?.showToast({ message: '已添加待办' });
           })
       }
@@ -502,7 +507,11 @@ struct Home {
           Checkbox()
             .select(todo.done)
             .selectedColor(AppColors.SUCCESS)
-            .onChange((checked: boolean) => { todo.done = checked; })
+            .onChange((checked: boolean) => {
+              todo.done = checked;
+              this.todoVersion += 1;
+              this.syncFloatTodos();
+            })
           Text(todo.title)
             .fontSize(26 * this.fontScale)
             .lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
@@ -516,7 +525,10 @@ struct Home {
             .padding({ left: 8, right: 8, top: 4, bottom: 4 })
             .backgroundColor(AppColors.WARNING_LIGHT)
             .borderRadius(6)
-            .onClick(() => { this.todos.splice(index, 1); })
+            .onClick(() => {
+              const realIdx = this.todos.indexOf(todo);
+              if (realIdx >= 0) { this.todos.splice(realIdx, 1); this.todoVersion += 1; this.syncFloatTodos(); }
+            })
         }
         .width('100%')
         .padding({ top: 6, bottom: 6 })
@@ -524,7 +536,7 @@ struct Home {
       })
 
       // 进度条
-      if (this.todos.length > 0) {
+      if (this.todos.length > 0 && this.todoVersion >= 0) {
         Row({ space: 8 }) {
           Progress({
             value: this.todos.filter((t: TodoItem) => t.done).length,

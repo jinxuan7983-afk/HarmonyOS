@@ -143,6 +143,9 @@ struct NewsDetail {
                 .width('100%')
                 // 【3.3.2 文字复制】长按复制
                 .onClick(() => {
+                  const pasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, paragraph);
+                  const sysPasteboard = pasteboard.getSystemPasteboard();
+                  sysPasteboard.setData(pasteData);
                   this.getUIContext()?.getPromptAction()?.showToast({ message: '已复制到剪贴板' });
                 })
             })
@@ -178,7 +181,8 @@ struct NewsDetail {
               .onClick(() => {
                 const linkText = `【校园公告】${this.title}\n来源：高校校园助手APP\n发布时间：${this.time}\n\n${this.summary}`;
                 const pasteboardData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, linkText);
-                pasteboard.getSystemPasteboard().setData(pasteboardData);
+                const sysPasteboard = pasteboard.getSystemPasteboard();
+                sysPasteboard.setData(pasteboardData);
                 this.getUIContext()?.getPromptAction()?.showToast({ message: '公告链接已复制到剪贴板' });
               })
           }

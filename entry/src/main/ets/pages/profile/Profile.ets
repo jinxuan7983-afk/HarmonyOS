@@ -15,6 +15,7 @@ import { DataManager, UserInfoData } from '../../utils/DataManager';
 export struct ProfileContent {
   @Link darkMode: boolean;
   @Link fontScale: number;
+  @StorageLink('profileUpdated') @Watch('onProfileUpdated') profileUpdated: number = 0;
   onSwitchTab?: (index: number) => void;
   @State nickname: string = '校园助手用户';
   @State studentId: string = '20260001';
@@ -40,6 +41,7 @@ export struct ProfileContent {
   @State todoRemindTime: string = '';
   @State todoIdCounter: number = 100;
   @State todoCount: number = 5;
+  @State todoVersion: number = 0;
   @State todos: TodoItemFull[] = [
     { id: 1, title: '完成移动开发实验报告', category: '学习', done: false, remindTime: '18:00' },
     { id: 2, title: '18:30 去图书馆还书', category: '生活', done: false, remindTime: '18:00' },
@@ -66,7 +68,7 @@ export struct ProfileContent {
     this.courseNotice = await DataManager.loadSettingBoolean('courseNotice', true);
     this.announcementNotice = await DataManager.loadSettingBoolean('announcementNotice', true);
     this.todoNotice = await DataManager.loadSettingBoolean('todoNotice', true);
-    const savedTodos = await DataManager.loadTodos();
+    const savedTodos = await DataManager.loadTodosFull();
     if (savedTodos.length > 0) {
       this.todos = savedTodos as TodoItemFull[];
       if (this.todos.length > 0) {
@@ -77,11 +79,25 @@ export struct ProfileContent {
     if (savedCollections.length > 0) {
       this.collections = savedCollections as CollectionItem[];
     }
+    this.avatarUri = await DataManager.loadAvatarUri();
   }
 
-  aboutToDisappear(): void {
-    DataManager.saveTodos(this.todos);
-    DataManager.saveCollections(this.collections);
+  onProfileUpdated(): void {
+    if (this.profileUpdated <= 0) return;
+    DataManager.loadUserInfo().then((userInfo: UserInfoData) => {
+      this.nickname = userInfo.nickname;
+      this.studentId = userInfo.account;
+      this.college = userInfo.college;
+      this.major = userInfo.major;
+    });
+    DataManager.loadAvatarUri().then((uri: string) => {
+      this.avatarUri = uri;
+    });
+  }
+
+  async aboutToDisappear(): Promise<void> {
+    await DataManager.saveTodosFull(this.todos);
+    await DataManager.saveCollections(this.collections);
   }
 
   build() {
@@ -248,8 +264,8 @@ export struct ProfileContent {
             .onClick(() => { this.collections.splice(idx, 1); this.getUIContext()?.getPromptAction()?.showToast({ message: '已取消收藏' }); })
         }
         .padding(14).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
-        .margin({ bottom: 8 })
-      })
+          .margin({ bottom: 8 })
+         }, (todo: TodoItemFull) => String(todo.id))
     }
     .padding(14).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
   }
@@ -295,7 +311,9 @@ export struct ProfileContent {
               category: this.todoCategory, done: false,
               remindTime: this.todoRemindTime || '—'
             });
+            this.todoVersion += 1;
             this.todoInput = ''; this.todoRemindTime = '';
+              this.todoVersion += 1;
           })
       }
     }
@@ -314,11 +332,13 @@ export struct ProfileContent {
       Button('标记完成').height(38).fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.SUCCESS).borderRadius(8)
         .onClick(() => {
           this.todos.forEach((t: TodoItemFull) => { if (this.selectedIds.has(t.id)) t.done = true; });
+          this.todoVersion += 1;
           this.selectedIds.clear(); this.getUIContext()?.getPromptAction()?.showToast({ message: '已批量标记完成' });
         })
       Button('删除').height(38).fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.DANGER).borderRadius(8)
         .onClick(() => {
           this.todos = this.todos.filter((t: TodoItemFull) => !this.selectedIds.has(t.id));
+          this.todoVersion += 1;
           this.selectedIds.clear(); this.getUIContext()?.getPromptAction()?.showToast({ message: '已批量删除' });
         })
     }
@@ -341,7 +361,7 @@ export struct ProfileContent {
                   }).margin({ right: 8 })
               }
               Checkbox().select(todo.done).selectedColor(AppColors.SUCCESS)
-                .onChange((c: boolean) => { todo.done = c; })
+                 .onChange((c: boolean) => { todo.done = c; this.todoVersion += 1; })
               Column({ space: 4 }) {
                 Text(todo.title)
                   .fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
@@ -359,7 +379,10 @@ export struct ProfileContent {
               if (!this.batchMode) {
                 Text('删').fontSize(22 * this.fontScale).fontColor(AppColors.WARNING).backgroundColor(AppColors.WARNING_LIGHT).borderRadius(4)
                   .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-                  .onClick(() => { this.todos.splice(idx, 1); })
+                  .onClick(() => {
+                    const realIdx = this.todos.indexOf(todo);
+                    if (realIdx >= 0) { this.todos.splice(realIdx, 1); this.todoVersion += 1; }
+                  })
               }
             }
             .padding(14).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
@@ -492,6 +515,7 @@ export struct ProfileContent {
             .onClick(() => {
               this.cacheSize = '0MB';
               this.showCacheDialog = false;
+              DataManager.clearAllCache();
               this.getUIContext()?.getPromptAction()?.showToast({ message: '缓存已清理完成' });
             })
         }

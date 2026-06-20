@@ -128,7 +128,8 @@ export default class EntryAbility extends UIAbility {
       // 使用主窗口上下文创建悬浮子窗口
       this.floatWindow = await window.createWindow({
         name: 'campus_todo_float',
-        windowType: window.WindowType.TYPE_FLOAT
+        windowType: window.WindowType.TYPE_FLOAT,
+        ctx: this.context
       });
       // 加载悬浮窗UI内容 - 显示待办信息
       await this.floatWindow.setUIContent('pages/life/TodoFloat');

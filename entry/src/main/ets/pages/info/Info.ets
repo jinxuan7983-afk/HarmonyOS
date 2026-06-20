@@ -23,6 +23,8 @@ export struct InfoContent {
   @State mapScale: number = 1;
   @State mapOffsetX: number = 0;
   @State mapOffsetY: number = 0;
+  private mapLastOffsetX: number = 0;
+  private mapLastOffsetY: number = 0;
 
   aboutToAppear(): void {
     console.info('InfoContent aboutToAppear');
@@ -238,7 +240,7 @@ export struct InfoContent {
           })
         }
         .margin({ bottom: 12 })
-      })
+       }, (item: NewsItem) => item.title + item.time)
 
       if (this.infoCount < this.getFilteredData().length) {
         ListItem() {
@@ -320,11 +322,11 @@ export struct InfoContent {
               .backgroundColor(ThemeUtil.cardBg(this.darkMode))
               .borderRadius(16)
               .border({ width: 1, color: AppColors.BORDER })
-              .onClick(() => {
-                this.selectedBuilding = b;
-                this.getUIContext()?.getPromptAction()?.showToast({ message: `${b.name}: ${b.desc.substring(0, 20)}...` });
-              })
-          })
+               .onClick(() => {
+                 this.selectedBuilding = b;
+                 this.getUIContext()?.getPromptAction()?.showToast({ message: `${b.name}: ${b.desc.substring(0, 20)}...` });
+               })
+           }, (b: Building) => b.name)
         }
       }
       .scrollable(ScrollDirection.Horizontal)
@@ -363,8 +365,8 @@ export struct InfoContent {
             }
             .position({ x: `${building.x}%`, y: `${building.y}%` })
             .translate({ x: '-50%', y: '-50%' })
-            .onClick(() => { this.selectedBuilding = building; })
-          })
+             .onClick(() => { this.selectedBuilding = building; })
+           }, (building: Building) => building.name)
         }
         .width('100%').height(200)
         .backgroundColor(AppColors.BG_PAGE)
@@ -381,9 +383,13 @@ export struct InfoContent {
         )
         .gesture(
           PanGesture({ fingers: 1, distance: 5 })
+            .onActionStart(() => {
+              this.mapLastOffsetX = this.mapOffsetX;
+              this.mapLastOffsetY = this.mapOffsetY;
+            })
             .onActionUpdate((event: GestureEvent) => {
-              this.mapOffsetX += event.offsetX;
-              this.mapOffsetY += event.offsetY;
+              this.mapOffsetX = this.mapLastOffsetX + event.offsetX;
+              this.mapOffsetY = this.mapLastOffsetY + event.offsetY;
             })
         )
       }
