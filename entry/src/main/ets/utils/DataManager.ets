@@ -249,7 +249,7 @@ export class DataManager {
   static async clearAllCache(): Promise<void> {
     try {
       const context = getContext();
-      const files: string[] = [FILE_COURSES, FILE_GRADES, FILE_COLLECTIONS, FILE_LOST_ITEMS, FILE_FOODS];
+      const files: string[] = [FILE_COURSES, FILE_GRADES, FILE_COLLECTIONS, FILE_LOST_ITEMS, FILE_FOODS, FILE_SONGS];
       for (let i = 0; i < files.length; i++) {
         const filePath: string = context.filesDir + '/' + files[i];
         if (fileIo.accessSync(filePath)) {
@@ -259,6 +259,14 @@ export class DataManager {
       const todoPrefs = await preferences.getPreferences(getContext(), TODO_PREFS);
       await todoPrefs.clear();
       await todoPrefs.flush();
+
+      const appPrefs = await preferences.getPreferences(getContext(), APP_PREFS);
+      await appPrefs.clear();
+      await appPrefs.flush();
+
+      const todoFullPrefs = await preferences.getPreferences(getContext(), TODO_FULL_PREFS);
+      await todoFullPrefs.clear();
+      await todoFullPrefs.flush();
     } catch (err) {
       console.error('DataManager: 清理缓存失败');
     }

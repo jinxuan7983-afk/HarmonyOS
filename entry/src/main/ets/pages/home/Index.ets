@@ -94,7 +94,7 @@ struct Index {
         Image($r('app.media.startIcon'))
           .width(120)
           .height(120)
-          .borderRadius(30)
+          .borderRadius(8)
           .opacity(this.fadeOpacity)
           .scale({ x: this.fadeOpacity, y: this.fadeOpacity })
           .shadow({
@@ -147,13 +147,13 @@ struct Index {
 
         Row({ space: 4 }) {
           Text('高校校园助手 APP 开发团队')
-            .fontSize(22)
+            .fontSize(24)
             .fontColor(AppColors.PRIMARY_LIGHT)
           Text('·')
-            .fontSize(22)
+            .fontSize(24)
             .fontColor(AppColors.PRIMARY_LIGHT)
           Text('v1.0.0')
-            .fontSize(22)
+            .fontSize(24)
             .fontColor(AppColors.PRIMARY_LIGHT)
         }
         .opacity(this.fadeOpacity)

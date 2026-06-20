@@ -24,7 +24,7 @@ struct TodoFloat {
       // 顶部标题栏
       Row() {
         Text('待办提醒')
-          .fontSize(15)
+          .fontSize(24)
           .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.BG_CARD)
         Blank()
@@ -63,7 +63,7 @@ struct TodoFloat {
                 })
 
               Text(todo.title)
-                .fontSize(14)
+                .fontSize(24)
                 .fontColor(AppColors.TEXT_PRIMARY)
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -95,7 +95,7 @@ struct TodoFloat {
           .layoutWeight(1)
 
         Text(`${this.todos.filter((t: TodoItem) => t.done).length}/${this.todos.length} 已完成`)
-          .fontSize(11)
+          .fontSize(24)
           .fontColor(AppColors.TEXT_SECONDARY)
           .margin({ left: 8 })
       }

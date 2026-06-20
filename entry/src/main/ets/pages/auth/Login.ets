@@ -1,6 +1,7 @@
 import router from '@ohos.router';
 import preferences from '@ohos.data.preferences';
 import { AppColors } from '../../common/constants/AppColors';
+import { DataManager } from '../../utils/DataManager';
 
 /**
  * 【2.3 登录/注册页】合并布局，标签切换
@@ -187,7 +188,7 @@ struct Login {
           Text(this.activeTab === '登录' ? '立即注册' : '立即登录')
             .fontSize(24)
             .fontColor(AppColors.PRIMARY)
-            .fontWeight(500)
+            .fontWeight(FontWeight.Bold)
             .margin({ left: 4 })
             .onClick(() => {
               this.activeTab = this.activeTab === '登录' ? '注册' : '登录';
@@ -204,30 +205,30 @@ struct Login {
           Row({ space: 32 }) {
             Column({ space: 6 }) {
               Text('微')
-                .fontSize(22)
+                .fontSize(24)
                 .fontColor(AppColors.BG_CARD)
                 .width(36)
                 .height(36)
                 .textAlign(TextAlign.Center)
-                .backgroundColor('#07C160')
+                .backgroundColor(AppColors.WECHAT)
                 .borderRadius(18)
               Text('微信')
-                .fontSize(22)
+                .fontSize(24)
                 .fontColor(AppColors.TEXT_SECONDARY)
             }
             .onClick(() => this.getUIContext()?.getPromptAction()?.showToast({ message: '微信登录功能开发中' }))
 
             Column({ space: 6 }) {
               Text('Q')
-                .fontSize(22)
+                .fontSize(24)
                 .fontColor(AppColors.BG_CARD)
                 .width(36)
                 .height(36)
                 .textAlign(TextAlign.Center)
-                .backgroundColor('#12B7F5')
+                .backgroundColor(AppColors.QQ)
                 .borderRadius(18)
               Text('QQ')
-                .fontSize(22)
+                .fontSize(24)
                 .fontColor(AppColors.TEXT_SECONDARY)
             }
             .onClick(() => this.getUIContext()?.getPromptAction()?.showToast({ message: 'QQ登录功能开发中' }))
@@ -298,7 +299,7 @@ struct Login {
       .width('88%')
       .padding(24)
       .backgroundColor(AppColors.BG_CARD)
-      .borderRadius(12)
+      .borderRadius(8)
     }
     .width('100%')
     .height('100%')
@@ -394,14 +395,14 @@ struct Login {
         Text('忘记密码')
           .fontSize(24)
           .fontColor(AppColors.PRIMARY)
-          .fontWeight(500)
+          .fontWeight(FontWeight.Bold)
           .onClick(() => router.pushUrl({ url: 'pages/auth/ForgotPassword' }))
       }
       .width('90%')
 
       // 登录按钮
       Button('登录')
-        .width('90%')
+        .width('100%')
         .height(48)
         .fontSize(26)
         .fontColor(this.isLoginActive() ? AppColors.BG_CARD : AppColors.TEXT_SECONDARY)
@@ -498,19 +499,19 @@ struct Login {
           .width(22).height(22)
           .onChange((checked: boolean) => { this.agreeProtocol = checked; })
         Text('我已阅读并同意')
-          .fontSize(22)
+          .fontSize(24)
           .fontColor(AppColors.TEXT_SECONDARY)
         Text('《用户注册协议》')
-          .fontSize(22)
+          .fontSize(24)
           .fontColor(AppColors.PRIMARY)
-          .fontWeight(500)
+          .fontWeight(FontWeight.Bold)
           .onClick(() => { this.showProtocolModal = true; })
       }
       .width('90%')
 
       // 注册按钮
       Button('注册')
-        .width('90%')
+        .width('100%')
         .height(48)
         .fontSize(26)
         .fontColor(this.isRegisterActive() ? AppColors.BG_CARD : AppColors.TEXT_SECONDARY)
@@ -535,6 +536,7 @@ struct Login {
           this.regLoading = true;
           this.getUIContext()?.getPromptAction()?.showToast({ message: '注册成功！已进入演示账号' });
           this.saveUserInfo(this.regName, this.regAccount);
+          DataManager.saveString('user_info', 'password', this.regPassword);
           setTimeout(() => {
             this.regLoading = false;
             router.replaceUrl({ url: 'pages/home/Home' });

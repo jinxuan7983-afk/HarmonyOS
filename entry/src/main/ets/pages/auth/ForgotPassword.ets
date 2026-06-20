@@ -37,7 +37,7 @@ struct ForgotPassword {
           .width(24).height(24).fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text('找回密码')
-          .fontSize(30).fontWeight(600).fontColor(AppColors.TEXT_PRIMARY)
+          .fontSize(28).fontWeight(600).fontColor(AppColors.TEXT_PRIMARY)
           .margin({ left: 8 }).layoutWeight(1)
       }
       .width('100%').height(52).padding({ left: 16, right: 16 }).backgroundColor(AppColors.BG_CARD)
@@ -109,7 +109,7 @@ struct ForgotPassword {
 
           // 重置按钮
           Button('重置密码')
-            .width('90%').height(48).fontSize(26)
+            .width('100%').height(48).fontSize(26)
             .fontColor(this.canReset() ? AppColors.BG_CARD : AppColors.TEXT_SECONDARY)
             .backgroundColor(this.canReset() ? AppColors.PRIMARY : AppColors.PRIMARY_BG)
             .borderRadius(8)

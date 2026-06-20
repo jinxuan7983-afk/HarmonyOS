@@ -37,13 +37,13 @@ struct Guide {
       title: '学习助手，高效备考',
       desc: '课程表、成绩查询、图书馆检索，助力学业提升',
       icon: '📚',
-      bgColor: '#E8FFEC'
+      bgColor: AppColors.SUCCESS_LIGHT
     },
     {
       title: '生活服务，贴心相伴',
       desc: '失物招领、校园美食、音乐播放，丰富校园生活',
       icon: '❤️',
-      bgColor: '#FFF3E6'
+      bgColor: AppColors.WARNING_LIGHT
     }
   ];
 
@@ -84,15 +84,15 @@ struct Guide {
             // 上半部分60%：引导图
             Column() {
               Text(item.icon)
-                .fontSize(72)
+                .fontSize(32)
                 .width('100%')
                 .height('100%')
                 .textAlign(TextAlign.Center)
                 .backgroundColor(item.bgColor)
-                .borderRadius(16)
+                .borderRadius(8)
             }
             .width('78%')
-            .height('58%')
+            .height('60%')
             .justifyContent(FlexAlign.Center)
             .margin({ top: 16 })
 

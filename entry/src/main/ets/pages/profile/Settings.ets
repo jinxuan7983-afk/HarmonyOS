@@ -33,10 +33,7 @@ struct Settings {
 
   async aboutToAppear(): Promise<void> {
     this.statusBarHeight = await StatusBarUtil.getStatusBarHeight(this.getUIContext().getHostContext());
-    this.darkMode = await DataManager.loadSettingBoolean('darkMode', false);
     this.selectedFont = await DataManager.loadSettingString('fontSize', 'normal');
-    const fontScaleMap: Record<string, number> = { 'small': 0.85, 'normal': 1.0, 'large': 1.2 };
-    this.fontScale = fontScaleMap[this.selectedFont] || 1.0;
     this.courseNotice = await DataManager.loadSettingBoolean('courseNotice', true);
     this.announcementNotice = await DataManager.loadSettingBoolean('announcementNotice', true);
     this.todoNotice = await DataManager.loadSettingBoolean('todoNotice', true);
@@ -55,7 +52,7 @@ struct Settings {
           .width(24).height(24).fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text('设置')
-          .fontSize(30 * this.fontScale).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
+          .fontSize(28).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
           .margin({ left: 8 }).layoutWeight(1)
       }
       .width('100%').height(52).padding({ left: 16, right: 16 })
@@ -92,15 +89,17 @@ struct Settings {
                       .checked(this.selectedFont === ['small', 'normal', 'large'][index])
                       .radioStyle({ checkedBackgroundColor: AppColors.PRIMARY })
                       .width(22).height(22)
+                      .onChange((isChecked: boolean) => {
+                        if (isChecked) {
+                          const vals = ['small', 'normal', 'large'];
+                          const scales = [0.85, 1.0, 1.2];
+                          this.selectedFont = vals[index];
+                          this.fontScale = scales[index];
+                          DataManager.saveSettingString('fontSize', vals[index]);
+                        }
+                      })
                     Text(label).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
                   }
-                  .onClick(() => {
-                    const vals = ['small', 'normal', 'large'];
-                    const scales = [0.85, 1.0, 1.2];
-                    this.selectedFont = vals[index];
-                    this.fontScale = scales[index];
-                    DataManager.saveSettingString('fontSize', vals[index]);
-                  })
                 })
               }
             }
@@ -113,7 +112,7 @@ struct Settings {
               Text('通知设置').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
                 .layoutWeight(1).margin({ left: 10 })
               Text(this.showNoticeExpand ? '▲' : '▼')
-                .fontSize(22).fontColor(AppColors.PRIMARY)
+                .fontSize(24).fontColor(AppColors.PRIMARY)
             }
             .width('100%').height(48).padding({ left: 16, right: 16 })
             .onClick(() => { this.showNoticeExpand = !this.showNoticeExpand; })
@@ -222,7 +221,7 @@ struct Settings {
         Text('🗑 清理缓存').fontSize(28).fontWeight(700).fontColor(AppColors.TEXT_PRIMARY)
         Text('确定要清理本地缓存吗？\n将清除图片、音频及数据文件。').fontSize(24).fontColor(AppColors.TEXT_TERTIARY)
           .lineHeight(36).textAlign(TextAlign.Center)
-        Text(`当前缓存：${this.cacheSize}`).fontSize(22).fontColor(AppColors.TEXT_SECONDARY)
+        Text(`当前缓存：${this.cacheSize}`).fontSize(24).fontColor(AppColors.TEXT_SECONDARY)
         Row({ space: 12 }) {
           Button('取消').layoutWeight(1).height(48).fontSize(26).fontColor(AppColors.TEXT_SECONDARY)
             .backgroundColor(AppColors.DIVIDER).borderRadius(8)
@@ -256,7 +255,7 @@ struct Settings {
         Text('开发团队：信息工程学院 软件工程').fontSize(24).fontColor(AppColors.TEXT_TERTIARY)
           .lineHeight(36).textAlign(TextAlign.Center)
         Text('基于 HarmonyOS NEXT 开发的校园综合服务应用，致力于为师生提供便捷的校园信息服务。')
-          .fontSize(22).fontColor(AppColors.TEXT_SECONDARY).lineHeight(34).textAlign(TextAlign.Center)
+          .fontSize(24).fontColor(AppColors.TEXT_SECONDARY).lineHeight(34).textAlign(TextAlign.Center)
         Button('确定').width('100%').height(48).fontSize(26).fontColor(AppColors.BG_CARD)
           .backgroundColor(AppColors.PRIMARY).borderRadius(8)
           .onClick(() => { this.showAboutDialog = false; })

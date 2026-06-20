@@ -33,7 +33,7 @@ struct MessageCenter {
           .width(24).height(24).fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text('消息中心')
-          .fontSize(30).fontWeight(600).fontColor(AppColors.TEXT_PRIMARY).margin({ left: 8 }).layoutWeight(1)
+          .fontSize(28).fontWeight(600).fontColor(AppColors.TEXT_PRIMARY).margin({ left: 8 }).layoutWeight(1)
         Text('全部已读')
           .fontSize(24).fontColor(AppColors.PRIMARY)
           .onClick(() => {
@@ -69,13 +69,13 @@ struct MessageCenter {
                   .fontSize(26).fontWeight(msg.read ? FontWeight.Normal : FontWeight.Bold)
                   .fontColor(msg.read ? AppColors.TEXT_SECONDARY : AppColors.TEXT_PRIMARY).maxLines(1)
                 Text(msg.content)
-                  .fontSize(22).fontColor(AppColors.TEXT_SECONDARY).maxLines(1)
+                  .fontSize(24).fontColor(AppColors.TEXT_SECONDARY).maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
               }
               .alignItems(HorizontalAlign.Start).layoutWeight(1)
 
               Text(msg.time)
-                .fontSize(20).fontColor(AppColors.TEXT_PLACEHOLDER)
+                .fontSize(24).fontColor(AppColors.TEXT_PLACEHOLDER)
             }
             .width('100%').padding(16)
             .onClick(() => {

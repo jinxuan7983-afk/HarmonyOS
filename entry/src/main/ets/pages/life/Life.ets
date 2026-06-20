@@ -15,8 +15,8 @@ import { DataManager } from '../../utils/DataManager';
 
 @Component
 export struct LifeContent {
-  @Prop darkMode: boolean = false;
-  @Prop fontScale: number = 1.0;
+  @StorageLink('darkMode') darkMode: boolean = false;
+  @StorageLink('fontScale') fontScale: number = 1.0;
   @State tab: string = '失物招领';
   @State searchText: string = '';
   @State refreshing: boolean = false;
@@ -59,7 +59,23 @@ export struct LifeContent {
   ];
   @State foodVersion: number = 0;
   @State lostVersion: number = 0;
+
+  // 计算器
+  @State showCalculator: boolean = false;
+  @State calcDisplay: string = '0';
+  @State calcOperator: string = '';
+  @State calcPrev: number = 0;
+  @State calcJustEvaluated: boolean = false;
+
+  // 倒计时
+  @State showCountdown: boolean = false;
+  @State countdownMinutes: number = 25;
+  @State countdownSeconds: number = 0;
+  @State countdownRunning: boolean = false;
+  @State countdownRemaining: number = 0;
+
   private progressTimer: number = 0;
+  private countdownTimer: number = 0;
   private avPlayer?: media.AVPlayer;
   private isAVPlayerReady: boolean = false;
   private avDuration: number = 0;
@@ -84,6 +100,8 @@ export struct LifeContent {
       if (savedLost && (savedLost as LostItem[]).length > 0) this.lostItems = savedLost as LostItem[];
       const savedFoods = await DataManager.loadFoods();
       if (savedFoods && (savedFoods as FoodItem[]).length > 0) this.foods = savedFoods as FoodItem[];
+      const savedSongs = await DataManager.loadSongs();
+      if (savedSongs && (savedSongs as SongItem[]).length > 0) this.songs = savedSongs as SongItem[];
     } catch (e) {
       console.error('LifeContent aboutToAppear error: ' + JSON.stringify(e));
     }
@@ -92,6 +110,7 @@ export struct LifeContent {
 
   async aboutToDisappear(): Promise<void> {
     this.stopProgress();
+    this.stopCountdown();
     if (this.avPlayer) {
       try {
         await this.avPlayer.stop();
@@ -102,24 +121,31 @@ export struct LifeContent {
     this.closeMusicFloatWindow();
     await DataManager.saveLostItems(this.lostItems);
     await DataManager.saveFoods(this.foods);
+    await DataManager.saveSongs(this.songs);
   }
 
   build() {
     Column() {
       // 导航栏（无返回箭头，白色背景）
       Row() {
-        Text('生活服务').fontSize(30 * this.fontScale).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode)).lineHeight(30 * this.fontScale * AppColors.LINE_HEIGHT_TITLE_L)
+        Text('生活服务').fontSize(28).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode)).lineHeight(28 * AppColors.LINE_HEIGHT_TITLE_L)
       }
       .width('100%').padding({ left: 20, right: 20, top: 14, bottom: 10 }).backgroundColor(ThemeUtil.cardBg(this.darkMode))
 
       Refresh({ refreshing: $$this.refreshing }) {
         Scroll() {
           Column({ space: 16 }) {
-            this.EntryGrid()
-            if (this.tab === '失物招领') this.LostAndFound()
-            else if (this.tab === '校园美食') this.FoodList()
-            else if (this.tab === '音乐播放') this.MusicPlayer()
-            else this.ToolsPanel()
+            if (this.showCalculator) {
+              this.CalculatorPanel()
+            } else if (this.showCountdown) {
+              this.CountdownPanel()
+            } else {
+              this.EntryGrid()
+              if (this.tab === '失物招领') this.LostAndFound()
+              else if (this.tab === '校园美食') this.FoodList()
+              else if (this.tab === '音乐播放') this.MusicPlayer()
+              else this.ToolsPanel()
+            }
           }
           .width('100%').padding({ left: 20, right: 20, top: 12, bottom: 18 })
         }
@@ -187,7 +213,7 @@ export struct LifeContent {
       Scroll() {
         Row({ space: 8 }) {
           ForEach(this.lostFilters, (f: string) => {
-            Text(f).fontSize(22)
+            Text(f).fontSize(24)
               .fontColor(
                 ((f === '失物' || f === '拾物') && this.lostFilterType === f) ||
                 ((f === '校园卡' || f === '电子产品') && this.lostFilterCat === f) ||
@@ -216,17 +242,17 @@ export struct LifeContent {
            ListItem() {
              Row({ space: 12 }) {
                Image(item.imageUri || $r('app.media.foreground'))
-                 .width(64).height(64).objectFit(ImageFit.Cover).borderRadius(8).backgroundColor('#F5F5F5')
+                 .width(64).height(64).objectFit(ImageFit.Cover).borderRadius(8).backgroundColor(AppColors.BG_PAGE)
                Column({ space: 4 }) {
                  Row() {
                    Text(item.title).fontSize(26 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode)).lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
-                   Text(item.type).fontSize(22)
+                   Text(item.type).fontSize(24)
                      .fontColor(item.type === '失物' ? AppColors.WARNING : AppColors.SUCCESS)
                      .padding({ left: 8, right: 8, top: 2, bottom: 2 })
                      .backgroundColor(item.type === '失物' ? AppColors.WARNING_LIGHT : AppColors.SUCCESS_LIGHT).borderRadius(4).margin({ left: 8 })
                  }
-                 Text(`${item.place} · ${item.time}`).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
-                 Text(`📞 ${item.phone}`).fontSize(22).fontColor(AppColors.PRIMARY)
+                 Text(`${item.place} · ${item.time}`).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                 Text(`📞 ${item.phone}`).fontSize(24).fontColor(AppColors.PRIMARY)
                }
                .alignItems(HorizontalAlign.Start).layoutWeight(1)
              }
@@ -278,8 +304,8 @@ export struct LifeContent {
 
       if (this.foodImageUri.length > 0) {
         Row({ space: 8 }) {
-          Image($r('app.media.foreground')).width(72).height(72).objectFit(ImageFit.Cover).borderRadius(6)
-          Text('点击上方按钮推荐美食').fontSize(22).fontColor(ThemeUtil.subColor(this.darkMode))
+          Image($r('app.media.foreground')).width(72).height(72).objectFit(ImageFit.Cover).borderRadius(8)
+          Text('点击上方按钮推荐美食').fontSize(24).fontColor(ThemeUtil.subColor(this.darkMode))
         }
       }
 
@@ -287,7 +313,7 @@ export struct LifeContent {
       Scroll() {
         Row({ space: 8 }) {
           ForEach(this.foodCategories, (cat: string) => {
-            Text(cat).fontSize(22)
+            Text(cat).fontSize(24)
               .fontColor(cat === this.foodFilter ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
               .padding({ left: 14, right: 14, top: 6, bottom: 6 })
               .backgroundColor(cat === this.foodFilter ? AppColors.WARNING : AppColors.WARNING_LIGHT).borderRadius(16)
@@ -299,7 +325,7 @@ export struct LifeContent {
 
       // 美食列表（图片150px+名称+食堂+评分+右侧收藏按钮）
       List() {
-         ForEach(this.foods, (food: FoodItem, idx: number) => {
+         ForEach(this.getFilteredFoods(), (food: FoodItem, idx: number) => {
           ListItem() {
             Column({ space: 8 }) {
               Image(food.imageUri || $r('app.media.background'))
@@ -308,7 +334,7 @@ export struct LifeContent {
               Row() {
                 Column({ space: 4 }) {
                   Text(food.name).fontSize(26 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode)).lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
-                  Text(`${food.place} · ${food.feature}`).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                  Text(`${food.place} · ${food.feature}`).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
                 }
                 .alignItems(HorizontalAlign.Start).layoutWeight(1)
                 Column({ space: 4 }) {
@@ -345,6 +371,17 @@ export struct LifeContent {
     }
   }
 
+  private getFilteredFoods(): FoodItem[] {
+    if (this.foodFilter === '全部') return this.foods;
+    return this.foods.filter((f: FoodItem) => {
+      if (this.foodFilter === '中餐') return f.name.includes('饭') || f.place.includes('食堂');
+      if (this.foodFilter === '面食') return f.name.includes('面');
+      if (this.foodFilter === '轻食') return f.name.includes('轻食') || f.name.includes('沙拉') || f.feature.includes('低脂');
+      if (this.foodFilter === '小吃') return f.place.includes('小吃') || f.feature.includes('麻辣');
+      return true;
+    });
+  }
+
   private pickFoodImage(): void {
     try {
       const docPicker = new picker.DocumentViewPicker();
@@ -364,7 +401,7 @@ export struct LifeContent {
         Image($r('app.media.logo'))
           .width(180).height(180).borderRadius(90)
           .rotate({ angle: this.playing ? 360 : 0 })
-          .backgroundColor('#F0F5FF')
+          .backgroundColor(AppColors.PRIMARY_LIGHT)
           .animation({ duration: 8000, curve: Curve.Linear, iterations: this.playing ? -1 : 1, playMode: PlayMode.Normal })
       }
       .width('100%')
@@ -383,7 +420,7 @@ export struct LifeContent {
         // 进度条（鸿蒙蓝+左右时间）
         Column({ space: 4 }) {
           Slider({ value: this.currentProgress, min: 0, max: this.songs[this.selectedSong].duration })
-            .blockColor(AppColors.PRIMARY).trackColor('#DCE9FF').selectedColor(AppColors.PRIMARY).width('100%')
+            .blockColor(AppColors.PRIMARY).trackColor(AppColors.PRIMARY_BG).selectedColor(AppColors.PRIMARY).width('100%')
             .onChange(async (v: number) => {
               this.currentProgress = v;
               if (this.avPlayer && this.isAVPlayerReady) {
@@ -393,18 +430,18 @@ export struct LifeContent {
               }
             })
           Row() {
-            Text(this.formatTime(this.currentProgress)).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+            Text(this.formatTime(this.currentProgress)).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
             Blank()
-            Text(this.formatTime(this.songs[this.selectedSong].duration)).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+            Text(this.formatTime(this.songs[this.selectedSong].duration)).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
           }
           .width('100%')
         }
 
         // 控制按钮（40px鸿蒙蓝间距32px）
         Row({ space: 32 }) {
-          Text('⏮').fontSize(40).fontColor(AppColors.PRIMARY).onClick(() => this.prevSong())
-          Text(this.playing ? '⏸' : '▶️').fontSize(40).fontColor(AppColors.PRIMARY).onClick(() => this.togglePlay())
-          Text('⏭').fontSize(40).fontColor(AppColors.PRIMARY).onClick(() => this.nextSong())
+          Text('⏮').fontSize(32).fontColor(AppColors.PRIMARY).onClick(() => this.prevSong())
+          Text(this.playing ? '⏸' : '▶️').fontSize(32).fontColor(AppColors.PRIMARY).onClick(() => this.togglePlay())
+          Text('⏭').fontSize(32).fontColor(AppColors.PRIMARY).onClick(() => this.nextSong())
         }
 
         // 本地音乐按钮
@@ -417,18 +454,18 @@ export struct LifeContent {
         // 播放列表
         Column({ space: 0 }) {
           Text('播放列表')
-            .fontSize(26 * this.fontScale).fontWeight(FontWeight.Medium).fontColor(ThemeUtil.titleColor(this.darkMode))
+            .fontSize(26 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode))
             .alignSelf(ItemAlign.Start).margin({ top: 10, bottom: 10 })
           ForEach(this.songs, (song: SongItem, si: number) => {
             Row() {
               Text(si === this.selectedSong && this.playing ? '🎵' : '🎶').fontSize(24)
               Column({ space: 4 }) {
-                Text(song.name).fontSize(24 * this.fontScale).fontWeight(FontWeight.Medium)
+                Text(song.name).fontSize(24 * this.fontScale).fontWeight(FontWeight.Bold)
                   .fontColor(si === this.selectedSong ? AppColors.PRIMARY : ThemeUtil.titleColor(this.darkMode)).lineHeight(24 * this.fontScale * AppColors.LINE_HEIGHT_AUX)
-                Text(song.singer).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                Text(song.singer).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
               }
               .alignItems(HorizontalAlign.Start).margin({ left: 10 }).layoutWeight(1)
-              Text(this.formatTime(song.duration)).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+              Text(this.formatTime(song.duration)).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
             }
             .width('100%').padding({ top: 10, bottom: 10 })
             .border({ width: { bottom: si < this.songs.length - 1 ? 1 : 0 }, color: AppColors.DIVIDER })
@@ -663,7 +700,19 @@ export struct LifeContent {
           }
           .width('100%').height(100).justifyContent(FlexAlign.Center)
           .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
-          .onClick(() => this.getUIContext()?.getPromptAction()?.showToast({ message: `打开工具：${name}` }))
+          .onClick(() => {
+            if (name === '计算器') {
+              this.showCalculator = true;
+              this.calcDisplay = '0';
+              this.calcOperator = '';
+              this.calcPrev = 0;
+              this.calcJustEvaluated = false;
+            } else if (name === '倒计时') {
+              this.showCountdown = true;
+            } else {
+              this.getUIContext()?.getPromptAction()?.showToast({ message: `${name}功能开发中` });
+            }
+          })
         }
       })
     }
@@ -677,6 +726,276 @@ export struct LifeContent {
       case '快递查询': return '📦';
       case '校历': return '📅';
       default: return '🔧';
+    }
+  }
+
+  // ===== 计算器 =====
+  @Builder CalculatorPanel() {
+    Column({ space: 12 }) {
+      // 顶部返回按钮
+      Row() {
+        Text('← 返回').fontSize(24).fontColor(AppColors.PRIMARY)
+          .onClick(() => { this.showCalculator = false; })
+        Blank()
+        Text('计算器').fontSize(26 * this.fontScale).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
+        Blank()
+        Text('').width(60)
+      }
+      .width('100%')
+
+      // 显示屏
+      Column() {
+        Text(this.calcDisplay)
+          .fontSize(32)
+          .fontColor(ThemeUtil.titleColor(this.darkMode))
+          .textAlign(TextAlign.End)
+          .width('100%')
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .width('100%').height(80).justifyContent(FlexAlign.Center)
+      .padding({ left: 16, right: 16 })
+      .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+
+      // 4x4 按钮网格
+      Grid() {
+        ForEach(this.getCalcButtons(), (row: string[]) => {
+          GridItem() {
+            Row({ space: 10 }) {
+              ForEach(row, (btn: string) => {
+                Button(btn)
+                  .width('22%').height(48).fontSize(24)
+                  .fontColor(this.isCalcOperator(btn) || btn === '=' ? Color.White : ThemeUtil.titleColor(this.darkMode))
+                  .backgroundColor(
+                    btn === '=' ? AppColors.SUCCESS :
+                    this.isCalcOperator(btn) ? AppColors.PRIMARY :
+                    btn === 'C' ? AppColors.WARNING :
+                    AppColors.BG_PAGE
+                  )
+                  .borderRadius(8)
+                  .layoutWeight(1)
+                  .onClick(() => this.onCalcButtonPress(btn))
+              })
+            }
+            .width('100%')
+          }
+        })
+      }
+      .columnsTemplate('1fr').rowsGap(10)
+    }
+    .width('100%').padding(16).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+  }
+
+  private getCalcButtons(): string[][] {
+    return [
+      ['C', '÷', '×', '⌫'],
+      ['7', '8', '9', '-'],
+      ['4', '5', '6', '+'],
+      ['1', '2', '3', '='],
+      ['0', '.', '', '']
+    ];
+  }
+
+  private isCalcOperator(btn: string): boolean {
+    return btn === '+' || btn === '-' || btn === '×' || btn === '÷';
+  }
+
+  private onCalcButtonPress(btn: string): void {
+    if (btn === '') return;
+    if (btn === 'C') {
+      this.calcDisplay = '0';
+      this.calcOperator = '';
+      this.calcPrev = 0;
+      this.calcJustEvaluated = false;
+      return;
+    }
+    if (btn === '⌫') {
+      if (this.calcDisplay.length > 1) {
+        this.calcDisplay = this.calcDisplay.substring(0, this.calcDisplay.length - 1);
+      } else {
+        this.calcDisplay = '0';
+      }
+      return;
+    }
+    if (this.isCalcOperator(btn)) {
+      const current = parseFloat(this.calcDisplay);
+      if (this.calcOperator !== '' && !this.calcJustEvaluated) {
+        const result = this.calcCompute(this.calcPrev, current, this.calcOperator);
+        this.calcDisplay = this.formatCalcResult(result);
+        this.calcPrev = result;
+      } else {
+        this.calcPrev = current;
+      }
+      this.calcOperator = btn;
+      this.calcJustEvaluated = false;
+      this.calcDisplay = this.formatCalcResult(this.calcPrev) + ' ' + btn;
+      return;
+    }
+    if (btn === '=') {
+      const current = parseFloat(this.calcDisplay);
+      if (this.calcOperator !== '') {
+        const result = this.calcCompute(this.calcPrev, current, this.calcOperator);
+        this.calcDisplay = this.formatCalcResult(result);
+        this.calcPrev = result;
+        this.calcOperator = '';
+        this.calcJustEvaluated = true;
+      }
+      return;
+    }
+    // 数字和小数点
+    if (this.calcJustEvaluated) {
+      this.calcDisplay = btn === '.' ? '0.' : btn;
+      this.calcJustEvaluated = false;
+      this.calcPrev = 0;
+      this.calcOperator = '';
+    } else {
+      if (btn === '.' && this.calcDisplay.indexOf('.') >= 0) return;
+      if (this.calcDisplay === '0' && btn !== '.') {
+        this.calcDisplay = btn;
+      } else {
+        this.calcDisplay = this.calcDisplay + btn;
+      }
+    }
+  }
+
+  private calcCompute(a: number, b: number, op: string): number {
+    switch (op) {
+      case '+': return a + b;
+      case '-': return a - b;
+      case '×': return a * b;
+      case '÷': return b !== 0 ? a / b : 0;
+      default: return b;
+    }
+  }
+
+  private formatCalcResult(num: number): string {
+    if (Number.isInteger(num) && Math.abs(num) < 1e15) {
+      return num.toString();
+    }
+    const s = num.toFixed(8);
+    return s.replace(/0+$/, '').replace(/\.$/, '');
+  }
+
+  // ===== 倒计时 =====
+  @Builder CountdownPanel() {
+    Column({ space: 16 }) {
+      // 顶部返回按钮
+      Row() {
+        Text('← 返回').fontSize(24).fontColor(AppColors.PRIMARY)
+          .onClick(() => { this.showCountdown = false; this.stopCountdown(); })
+        Blank()
+        Text('倒计时').fontSize(26 * this.fontScale).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
+        Blank()
+        Text('').width(60)
+      }
+      .width('100%')
+
+      // 预设时间选择
+      Column({ space: 8 }) {
+        Text('选择时间').fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode)).alignSelf(ItemAlign.Start)
+        Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
+          ForEach([5, 10, 15, 25, 30, 45, 60], (min: number) => {
+            Text(`${min}分钟`)
+              .fontSize(24)
+              .fontColor(this.countdownMinutes === min && !this.countdownRunning ? Color.White : ThemeUtil.titleColor(this.darkMode))
+              .padding({ left: 14, right: 14, top: 8, bottom: 8 })
+              .backgroundColor(this.countdownMinutes === min && !this.countdownRunning ? AppColors.PRIMARY : AppColors.BG_PAGE)
+              .borderRadius(20)
+              .margin({ right: 8, bottom: 8 })
+              .onClick(() => {
+                if (!this.countdownRunning) {
+                  this.countdownMinutes = min;
+                  this.countdownSeconds = 0;
+                  this.countdownRemaining = min * 60;
+                }
+              })
+          })
+        }
+      }
+
+      // 大号倒计时显示
+      Column() {
+        Text(this.formatCountdownDisplay())
+          .fontSize(32)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.countdownRemaining <= 10 && this.countdownRunning ? AppColors.WARNING : ThemeUtil.titleColor(this.darkMode))
+          .textAlign(TextAlign.Center)
+      }
+      .width('100%').height(120).justifyContent(FlexAlign.Center)
+      .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+
+      // 控制按钮
+      Row({ space: 12 }) {
+        if (!this.countdownRunning) {
+          Button('开始')
+            .height(48).fontSize(24).fontColor(Color.White)
+            .backgroundColor(AppColors.PRIMARY).borderRadius(8).layoutWeight(1)
+            .onClick(() => this.startCountdown())
+        } else {
+          Button('暂停')
+            .height(48).fontSize(24).fontColor(Color.White)
+            .backgroundColor(AppColors.WARNING).borderRadius(8).layoutWeight(1)
+            .onClick(() => this.pauseCountdown())
+        }
+        Button('重置')
+          .height(48).fontSize(24).fontColor(AppColors.PRIMARY)
+          .backgroundColor(AppColors.PRIMARY_LIGHT).borderRadius(8).layoutWeight(1)
+          .onClick(() => this.resetCountdown())
+      }
+      .width('100%')
+    }
+    .width('100%').padding(16).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+  }
+
+  private formatCountdownDisplay(): string {
+    let total = this.countdownRemaining;
+    if (!this.countdownRunning && total === 0) {
+      total = this.countdownMinutes * 60 + this.countdownSeconds;
+    }
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  private startCountdown(): void {
+    if (this.countdownRemaining <= 0) {
+      this.countdownRemaining = this.countdownMinutes * 60 + this.countdownSeconds;
+    }
+    if (this.countdownRemaining <= 0) return;
+    this.countdownRunning = true;
+    this.stopCountdown();
+    this.countdownTimer = setInterval(() => {
+      if (this.countdownRemaining <= 0) {
+        this.stopCountdown();
+        this.countdownRunning = false;
+        try { this.getUIContext()?.getPromptAction()?.showToast({ message: '倒计时结束' }); } catch (_) {}
+        return;
+      }
+      this.countdownRemaining -= 1;
+      if (this.countdownRemaining <= 0) {
+        this.countdownRemaining = 0;
+        this.stopCountdown();
+        this.countdownRunning = false;
+        try { this.getUIContext()?.getPromptAction()?.showToast({ message: '倒计时结束' }); } catch (_) {}
+      }
+    }, 1000);
+  }
+
+  private pauseCountdown(): void {
+    this.stopCountdown();
+    this.countdownRunning = false;
+  }
+
+  private resetCountdown(): void {
+    this.stopCountdown();
+    this.countdownRunning = false;
+    this.countdownRemaining = this.countdownMinutes * 60;
+  }
+
+  private stopCountdown(): void {
+    if (this.countdownTimer !== 0) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = 0;
     }
   }
 }

@@ -39,7 +39,7 @@ struct CourseEdit {
 
   private days: string[] = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   private timeOptions: string[] = ['08:20', '10:20', '14:00', '16:00', '19:00'];
-  private colors: string[] = [AppColors.PRIMARY, AppColors.SUCCESS, AppColors.WARNING, AppColors.PURPLE, AppColors.DANGER, AppColors.INFO, AppColors.WARNING, '#EB2F96'];
+  private colors: string[] = [AppColors.PRIMARY, AppColors.SUCCESS, AppColors.WARNING, AppColors.PURPLE, AppColors.DANGER, AppColors.INFO, AppColors.WARNING, AppColors.PINK];
 
   aboutToAppear(): void {
     const params = router.getParams() as RouterParams;
@@ -71,18 +71,18 @@ struct CourseEdit {
           .fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text(this.mode === 'add' ? '添加课程' : '编辑课程')
-          .fontSize(30)
+          .fontSize(28)
           .fontWeight(600)
           .fontColor(AppColors.TEXT_PRIMARY)
           .margin({ left: 8 })
           .layoutWeight(1)
         if (this.mode === 'edit') {
           Button('删除')
-            .height(32)
-            .fontSize(13)
+            .height(36)
+            .fontSize(24)
             .fontColor(AppColors.DANGER)
             .backgroundColor(AppColors.DANGER_LIGHT)
-            .borderRadius(6)
+            .borderRadius(8)
             .onClick(() => {
               AppStorage.setOrCreate('courseEditResult', { action: 'delete', index: this.editIndex });
               router.back();
@@ -104,11 +104,11 @@ struct CourseEdit {
 
           // 【3.4.1 单选框】选择上课日
           Column({ space: 8 }) {
-            Text('上课日').fontSize(15).fontWeight(FontWeight.Medium).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
+            Text('上课日').fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
             Row({ space: 6 }) {
               ForEach(this.days, (d: string) => {
                 Text(d)
-                  .fontSize(14)
+                  .fontSize(24)
                   .fontColor(this.day === d ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
                   .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                   .backgroundColor(this.day === d ? AppColors.PRIMARY : AppColors.DIVIDER)
@@ -120,11 +120,11 @@ struct CourseEdit {
 
           // 【3.4.1 单选框】上课时间
           Column({ space: 8 }) {
-            Text('上课时段').fontSize(15).fontWeight(FontWeight.Medium).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
+            Text('上课时段').fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
             Row({ space: 8 }) {
               ForEach(this.timeOptions.slice(0, 4), (t: string) => {
                 Text(t)
-                  .fontSize(14)
+                  .fontSize(24)
                   .fontColor(this.startTime === t ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
                   .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                   .backgroundColor(this.startTime === t ? AppColors.PRIMARY : AppColors.DIVIDER)
@@ -133,7 +133,7 @@ struct CourseEdit {
               })
             }
             Text(`结束时间：${this.getEndTime()}`)
-              .fontSize(13)
+              .fontSize(24)
               .fontColor(AppColors.TEXT_SECONDARY)
               .alignSelf(ItemAlign.Start)
               .margin({ left: 4 })
@@ -141,7 +141,7 @@ struct CourseEdit {
 
           // 课程颜色选择
           Column({ space: 8 }) {
-            Text('课程颜色').fontSize(15).fontWeight(FontWeight.Medium).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
+            Text('课程颜色').fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
             Row({ space: 10 }) {
               ForEach(this.colors, (color: string) => {
                 Column() {
@@ -161,8 +161,8 @@ struct CourseEdit {
           // 【3.4.1 课程提醒】Toggle开关
           Row() {
             Column({ space: 4 }) {
-              Text('课程开始前提醒').fontSize(15).fontWeight(FontWeight.Medium).fontColor(AppColors.TEXT_PRIMARY)
-              Text('课前10分钟推送通知提醒').fontSize(13).fontColor(AppColors.TEXT_SECONDARY)
+              Text('课程开始前提醒').fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY)
+              Text('课前10分钟推送通知提醒').fontSize(24).fontColor(AppColors.TEXT_SECONDARY)
             }
             .alignItems(HorizontalAlign.Start)
             .layoutWeight(1)
@@ -177,7 +177,7 @@ struct CourseEdit {
           // 预览卡片
           if (this.courseName.length > 0) {
             Column() {
-              Text('课程卡片预览').fontSize(14).fontColor(AppColors.TEXT_SECONDARY).alignSelf(ItemAlign.Start)
+              Text('课程卡片预览').fontSize(24).fontColor(AppColors.TEXT_SECONDARY).alignSelf(ItemAlign.Start)
               Row({ space: 12 }) {
                 Text('')
                   .width(5)
@@ -185,15 +185,15 @@ struct CourseEdit {
                   .backgroundColor(this.selectedColor)
                   .borderRadius(4)
                 Column({ space: 4 }) {
-                  Text(this.courseName || '课程名称').fontSize(16).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY)
-                  Text(`${this.startTime}-${this.getEndTime()} · ${this.place || '上课地点'}`).fontSize(13).fontColor(AppColors.TEXT_SECONDARY)
-                  Text(`授课教师：${this.teacher || '老师'}  ·  ${this.credits || '0'}学分`).fontSize(13).fontColor(AppColors.TEXT_SECONDARY)
+                  Text(this.courseName || '课程名称').fontSize(26).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY)
+                  Text(`${this.startTime}-${this.getEndTime()} · ${this.place || '上课地点'}`).fontSize(24).fontColor(AppColors.TEXT_SECONDARY)
+                  Text(`授课教师：${this.teacher || '老师'}  ·  ${this.credits || '0'}学分`).fontSize(24).fontColor(AppColors.TEXT_SECONDARY)
                 }
                 .alignItems(HorizontalAlign.Start)
                 .layoutWeight(1)
               }
               .padding(10)
-              .backgroundColor('#F7FBFF')
+              .backgroundColor(AppColors.PRIMARY_LIGHT)
               .borderRadius(8)
             }
           }
@@ -202,7 +202,7 @@ struct CourseEdit {
           Button('保存课程')
             .width('100%')
             .height(48)
-            .fontSize(18)
+            .fontSize(26)
             .fontColor(AppColors.BG_CARD)
             .backgroundColor(AppColors.PRIMARY)
             .borderRadius(8)
@@ -250,13 +250,13 @@ struct CourseEdit {
   InputField(label: string, placeholder: string, value: string, callback: (v: string) => void) {
     Column({ space: 6 }) {
       Text(label)
-        .fontSize(15)
-        .fontWeight(FontWeight.Medium)
+        .fontSize(24)
+        .fontWeight(FontWeight.Bold)
         .fontColor(AppColors.TEXT_PRIMARY)
         .alignSelf(ItemAlign.Start)
       TextInput({ text: value, placeholder: placeholder })
-        .height(46)
-        .fontSize(15)
+        .height(48)
+        .fontSize(24)
         .backgroundColor(AppColors.BG_CARD)
         .borderRadius(8)
         .padding({ left: 14, right: 14 })

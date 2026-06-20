@@ -10,8 +10,8 @@ import { NewsItem, Building } from '../../common/constants/DataModels';
 
 @Component
 export struct InfoContent {
-  @Prop darkMode: boolean = false;
-  @Prop fontScale: number = 1.0;
+  @StorageLink('darkMode') darkMode: boolean = false;
+  @StorageLink('fontScale') fontScale: number = 1.0;
   @State category: string = '校园公告';
   @State searchText: string = '';
   @State refreshing: boolean = false;
@@ -65,8 +65,8 @@ export struct InfoContent {
       // 导航栏（无返回箭头，白色背景）
       Row() {
         Text('校园信息')
-          .fontSize(30 * this.fontScale)
-          .lineHeight(30 * this.fontScale * AppColors.LINE_HEIGHT_TITLE_L)
+          .fontSize(28)
+          .lineHeight(28 * AppColors.LINE_HEIGHT_TITLE_L)
           .fontWeight(600)
           .fontColor(ThemeUtil.titleColor(this.darkMode))
       }
@@ -94,7 +94,7 @@ export struct InfoContent {
                   .onChange((v: string) => this.searchText = v)
               }
               .width('95%')
-              .height(44).padding({ left: 14, right: 14 })
+              .height(48).padding({ left: 14, right: 14 })
               .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(22)
               this.InfoList()
             }
@@ -154,7 +154,7 @@ export struct InfoContent {
     Row({ space: 8 }) {
       ForEach(this.noticeFilters, (item: string) => {
         Text(item)
-          .fontSize(22 * this.fontScale)
+          .fontSize(24 * this.fontScale)
           .fontColor(item === this.noticeFilter ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
           .padding({ left: 14, right: 14, top: 6, bottom: 6 })
           .backgroundColor(item === this.noticeFilter ? AppColors.PRIMARY : AppColors.DIVIDER)
@@ -208,13 +208,13 @@ export struct InfoContent {
               // 来源 + 时间 22sp
               Row({ space: 8 }) {
                 Text(item.subCategory)
-                  .fontSize(22 * this.fontScale)
+                  .fontSize(24 * this.fontScale)
                   .fontColor(AppColors.PRIMARY)
                   .padding({ left: 8, right: 8, top: 3, bottom: 3 })
                   .backgroundColor(AppColors.PRIMARY_LIGHT)
                   .borderRadius(4)
                 Text(item.time)
-                  .fontSize(22 * this.fontScale)
+                  .fontSize(24 * this.fontScale)
                   .fontColor(ThemeUtil.subColor(this.darkMode))
               }
             }
@@ -316,7 +316,7 @@ export struct InfoContent {
         Row({ space: 8 }) {
           ForEach(this.buildings, (b: Building) => {
             Text(b.icon + ' ' + b.name)
-              .fontSize(22 * this.fontScale)
+              .fontSize(24 * this.fontScale)
               .fontColor(ThemeUtil.titleColor(this.darkMode))
               .padding({ left: 12, right: 12, top: 6, bottom: 6 })
               .backgroundColor(ThemeUtil.cardBg(this.darkMode))
@@ -352,13 +352,13 @@ export struct InfoContent {
           ForEach(this.getFilteredBuildings(), (building: Building) => {
             Column({ space: 2 }) {
               Text(building.icon)
-                .fontSize(22)
+                .fontSize(24)
                 .fontWeight(FontWeight.Bold)
                 .fontColor(AppColors.BG_CARD)
                 .width(32).height(32).textAlign(TextAlign.Center)
                 .backgroundColor(AppColors.PRIMARY).borderRadius(16)
               Text(building.name)
-                .fontSize(18 * this.fontScale)
+                .fontSize(24)
                 .fontColor(ThemeUtil.titleColor(this.darkMode))
                 .padding({ left: 4, right: 4 })
                 .backgroundColor('#FFFFFFCC').borderRadius(4)
@@ -416,7 +416,7 @@ export struct InfoContent {
               Text(this.selectedBuilding.name)
                 .fontSize(26 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode))
               Text(`位置：${this.selectedBuilding.position}`)
-                .fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                .fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
             }
             .alignItems(HorizontalAlign.Start).margin({ left: 12 }).layoutWeight(1)
             Text('✕')

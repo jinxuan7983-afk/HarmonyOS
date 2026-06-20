@@ -3,7 +3,7 @@ import { DataManager } from '../../utils/DataManager';
 import { AppColors } from '../../common/constants/AppColors';
 import { ThemeUtil } from '../../common/utils/ThemeUtil';
 import { StatusBarUtil } from '../../common/utils/StatusBarUtil';
-import { NewsItem, QuickAction, TodoItem, CourseItem } from '../../common/constants/DataModels';
+import { NewsItem, QuickAction, TodoItem, TodoItemFull, CourseItem } from '../../common/constants/DataModels';
 import { InfoContent } from '../info/Info';
 import { StudyContent } from '../study/Study';
 import { LifeContent } from '../life/Life';
@@ -55,7 +55,7 @@ struct Home {
     console.info('Home页面 aboutToAppear');
     this.statusBarHeight = await StatusBarUtil.getStatusBarHeight(this.getUIContext().getHostContext());
     // 从DataManager加载持久化的待办
-    const savedTodos = await DataManager.loadTodos();
+    const savedTodos = await DataManager.loadTodosFull();
     if (savedTodos.length > 0) {
       this.todos = savedTodos as TodoItem[];
     }
@@ -64,6 +64,7 @@ struct Home {
 
   aboutToDisappear(): void {
     console.info('Home页面 aboutToDisappear');
+    DataManager.saveTodosFull(this.todos);
   }
 
   @State actions: QuickAction[] = [
@@ -76,7 +77,7 @@ struct Home {
     { title: '校园美食', icon: $r('sys.symbol.fork_knife'), iconColor: AppColors.DANGER, bgColor: AppColors.DANGER_LIGHT, url: 'pages/life/Life' },
     { title: '音乐播放', icon: $r('sys.symbol.headphones'), iconColor: AppColors.SUCCESS, bgColor: AppColors.SUCCESS_LIGHT, url: 'pages/life/Life' },
     { title: '待办提醒', icon: $r('sys.symbol.checkmark_circle'), iconColor: AppColors.WARNING, bgColor: AppColors.WARNING_LIGHT, url: 'pages/profile/Profile' },
-    { title: '更多功能', icon: $r('sys.symbol.ellipsis_circle'), iconColor: '#909399', bgColor: AppColors.DIVIDER, url: 'pages/profile/Profile' }
+    { title: '更多功能', icon: $r('sys.symbol.ellipsis_circle'), iconColor: AppColors.TEXT_SECONDARY, bgColor: AppColors.DIVIDER, url: 'pages/profile/Profile' }
   ];
 
   private allNews: NewsItem[] = [
@@ -122,22 +123,22 @@ struct Home {
         .tabBar(this.TabBuilder(0, '首页', $r('sys.symbol.house')))
 
         TabContent() {
-          InfoContent({ darkMode: this.darkMode, fontScale: this.fontScale })
+          InfoContent()
         }
         .tabBar(this.TabBuilder(1, '校园信息', $r('sys.symbol.doc')))
 
         TabContent() {
-          StudyContent({ darkMode: this.darkMode, fontScale: this.fontScale })
+          StudyContent()
         }
         .tabBar(this.TabBuilder(2, '学习助手', $r('sys.symbol.book')))
 
         TabContent() {
-          LifeContent({ darkMode: this.darkMode, fontScale: this.fontScale })
+          LifeContent()
         }
         .tabBar(this.TabBuilder(3, '生活服务', $r('sys.symbol.gearshape')))
 
         TabContent() {
-          ProfileContent({ darkMode: $darkMode, fontScale: $fontScale, onSwitchTab: (index: number) => { this.currentTab = index; } })
+          ProfileContent({ onSwitchTab: (index: number) => { this.currentTab = index; } })
         }
         .tabBar(this.TabBuilder(4, '我的', $r('sys.symbol.person')))
       }
@@ -163,9 +164,9 @@ struct Home {
         .fontSize(28)
         .fontColor([index === this.currentTab ? AppColors.PRIMARY : AppColors.TEXT_SECONDARY])
       Text(label)
-        .fontSize(22)
+        .fontSize(24)
         .fontColor(index === this.currentTab ? AppColors.PRIMARY : AppColors.TEXT_SECONDARY)
-        .fontWeight(index === this.currentTab ? FontWeight.Medium : FontWeight.Normal)
+        .fontWeight(index === this.currentTab ? FontWeight.Bold : FontWeight.Normal)
     }
     .width('100%')
     .height(56)
@@ -203,6 +204,9 @@ struct Home {
       .scrollBar(BarState.Off)
       .onScroll((xOffset: number, yOffset: number) => {
         this.scrollOffset = yOffset;
+        if (yOffset > 400 && this.newsCount < this.allNews.length) {
+          this.newsCount = Math.min(this.newsCount + 2, this.allNews.length);
+        }
       })
     }
     .onRefreshing(() => {
@@ -220,8 +224,8 @@ struct Home {
   TopBar() {
     Row() {
       Text('校园助手')
-        .fontSize(30 * this.fontScale)
-        .lineHeight(30 * this.fontScale * AppColors.LINE_HEIGHT_TITLE_L)
+        .fontSize(28)
+        .lineHeight(28 * AppColors.LINE_HEIGHT_TITLE_L)
         .fontWeight(600)
         .fontColor(this.scrollOffset > 50 ? AppColors.TEXT_PRIMARY : AppColors.PRIMARY)
 
@@ -230,7 +234,7 @@ struct Home {
       // 消息铃铛
       Stack() {
         SymbolGlyph($r('sys.symbol.bell'))
-          .fontSize(22)
+          .fontSize(24)
           .fontColor([AppColors.PRIMARY])
           .width(44)
           .height(44)
@@ -262,6 +266,11 @@ struct Home {
         .backgroundColor(Color.Transparent)
         .layoutWeight(1)
         .onChange((value: string) => this.searchText = value)
+        .onSubmit(() => {
+          if (this.searchText.trim().length > 0) {
+            router.pushUrl({ url: 'pages/info/SearchResult', params: { keyword: this.searchText } });
+          }
+        })
       Text('🎤')
         .fontSize(24)
         .fontColor(AppColors.PRIMARY)
@@ -272,8 +281,7 @@ struct Home {
     .backgroundColor(ThemeUtil.cardBg(this.darkMode))
     .borderRadius(24)
     .onClick(() => {
-      // 切换到校园信息Tab
-      this.currentTab = 1;
+      router.pushUrl({ url: 'pages/info/SearchResult', params: { keyword: this.searchText } });
     })
   }
 
@@ -285,20 +293,26 @@ struct Home {
         ForEach(this.actions, (item: QuickAction) => {
           GridItem() {
             Column({ space: 6 }) {
-              SymbolGlyph(item.icon)
-                .fontSize(32 * this.fontScale)
-                .fontColor([item.iconColor])
-                .width(64)
-                .height(64)
-                .backgroundColor(item.bgColor)
-                .borderRadius(32)
+              Stack() {
+                SymbolGlyph(item.icon)
+                  .fontSize(32 * this.fontScale)
+                  .fontColor([item.iconColor])
+              }
+              .width(64)
+              .height(64)
+              .backgroundColor(item.bgColor)
+              .borderRadius(32)
+              .alignContent(Alignment.Center)
                 .scale({ x: this.iconScale, y: this.iconScale })
                 .animation({ duration: 150, curve: Curve.EaseOut })
               Text(item.title)
                 .fontSize(24)
                 .fontColor(ThemeUtil.titleColor(this.darkMode))
                 .maxLines(1)
+                .textAlign(TextAlign.Center)
             }
+            .width('100%')
+            .alignItems(HorizontalAlign.Center)
             .onClick(() => {
               // 点击放大微动画
               this.iconScale = 0.85;
@@ -353,7 +367,7 @@ struct Home {
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
           Text(item.time)
-            .fontSize(22)
+            .fontSize(24)
             .fontColor(ThemeUtil.subColor(this.darkMode))
           Text(item.summary)
             .fontSize(24)
@@ -382,17 +396,14 @@ struct Home {
          }
        }, (item: NewsItem) => item.title + item.time)
 
-      // 上拉加载更多
+      // 自动加载提示
       if (this.newsCount < this.allNews.length) {
-        Text('上拉加载更多')
+        Text('加载中...')
           .fontSize(24)
-          .fontColor(AppColors.PRIMARY)
+          .fontColor(AppColors.TEXT_SECONDARY)
           .width('100%')
           .textAlign(TextAlign.Center)
           .padding({ top: 8 })
-          .onClick(() => {
-            this.newsCount = Math.min(this.newsCount + 2, this.allNews.length);
-          })
       }
     }
     .width('100%')
@@ -444,14 +455,14 @@ struct Home {
                   .fontColor(ThemeUtil.titleColor(this.darkMode))
                 // 暖橙标签标识当前课程
                 Text('进行中')
-                  .fontSize(20)
+                  .fontSize(24)
                   .fontColor(AppColors.BG_CARD)
                   .padding({ left: 8, right: 8, top: 2, bottom: 2 })
                   .backgroundColor(AppColors.WARNING)
                   .borderRadius(4)
               }
               Text(`${course.time} · ${course.place}`)
-                .fontSize(22)
+                .fontSize(24)
                 .fontColor(ThemeUtil.subColor(this.darkMode))
             }
             .alignItems(HorizontalAlign.Start)
@@ -520,11 +531,11 @@ struct Home {
             .layoutWeight(1)
             .maxLines(1)
           Text('删除')
-            .fontSize(22)
+            .fontSize(24)
             .fontColor(AppColors.WARNING)
             .padding({ left: 8, right: 8, top: 4, bottom: 4 })
             .backgroundColor(AppColors.WARNING_LIGHT)
-            .borderRadius(6)
+            .borderRadius(8)
             .onClick(() => {
               const realIdx = this.todos.indexOf(todo);
               if (realIdx >= 0) { this.todos.splice(realIdx, 1); this.todoVersion += 1; this.syncFloatTodos(); }
@@ -547,7 +558,7 @@ struct Home {
             .backgroundColor(AppColors.PRIMARY_LIGHT)
             .layoutWeight(1)
           Text(`${this.todos.filter((t: TodoItem) => t.done).length}/${this.todos.length}`)
-            .fontSize(22)
+            .fontSize(24)
             .fontColor(ThemeUtil.subColor(this.darkMode))
         }
       }
@@ -573,7 +584,7 @@ struct Home {
       Row({ space: 16 }) {
         // 左侧天气图标 48px
         Text('☀')
-          .fontSize(36)
+          .fontSize(32)
           .width(48)
           .height(48)
           .textAlign(TextAlign.Center)
@@ -639,7 +650,7 @@ struct Home {
         .fontWeight(FontWeight.Bold)
         .fontColor(color)
       Text(label)
-        .fontSize(22)
+        .fontSize(24)
         .fontColor(ThemeUtil.subColor(this.darkMode))
     }
     .width('100%')
@@ -653,7 +664,7 @@ struct Home {
   ForecastItem(day: string, icon: string, high: string, low: string) {
     Column({ space: 6 }) {
       Text(day)
-        .fontSize(22)
+        .fontSize(24)
         .fontColor(ThemeUtil.subColor(this.darkMode))
       Text(icon)
         .fontSize(26 * this.fontScale)
@@ -662,7 +673,7 @@ struct Home {
         .fontWeight(FontWeight.Bold)
         .fontColor(ThemeUtil.titleColor(this.darkMode))
       Text(low)
-        .fontSize(22)
+        .fontSize(24)
         .fontColor(ThemeUtil.subColor(this.darkMode))
     }
     .alignItems(HorizontalAlign.Center)

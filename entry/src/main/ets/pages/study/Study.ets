@@ -13,8 +13,8 @@ import { DataManager } from '../../utils/DataManager';
 
 @Component
 export struct StudyContent {
-  @Prop darkMode: boolean = false;
-  @Prop fontScale: number = 1.0;
+  @StorageLink('darkMode') darkMode: boolean = false;
+  @StorageLink('fontScale') fontScale: number = 1.0;
   @State tab: string = '课程表';
   @State weekIndex: number = 15;
   @State searchText: string = '';
@@ -23,7 +23,8 @@ export struct StudyContent {
   // 成绩查询 - 自动从用户数据加载学号
   @State studentId: string = '';
   @State gradePassword: string = '';
-  @State gradeLoggedIn: boolean = true;
+  @State gradeLoggedIn: boolean = false;
+  @State showGradePassword: boolean = false;
   @State gradeSortBy: string = 'score';
   @State gradeSortDesc: boolean = true;
 
@@ -63,11 +64,16 @@ export struct StudyContent {
     if (savedCourses && (savedCourses as CourseItem[]).length > 0) {
       this.courses = savedCourses as CourseItem[];
     }
+    const savedGrades = await DataManager.loadGrades();
+    if (savedGrades && (savedGrades as GradeItem[]).length > 0) {
+      this.grades = savedGrades as GradeItem[];
+    }
   }
 
   async aboutToDisappear(): Promise<void> {
     console.info('StudyContent aboutToDisappear');
     await DataManager.saveJsonFile('courses.json', this.courses);
+    await DataManager.saveGrades(this.grades);
   }
 
   private tabs: string[] = ['课程表', '成绩查询', '图书馆检索', '学习资料'];
@@ -119,7 +125,7 @@ export struct StudyContent {
     Column() {
       // 导航栏（无返回箭头，白色背景）
       Row() {
-        Text('学习助手').fontSize(30 * this.fontScale).lineHeight(30 * this.fontScale * AppColors.LINE_HEIGHT_TITLE_L).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
+        Text('学习助手').fontSize(28).lineHeight(28 * AppColors.LINE_HEIGHT_TITLE_L).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
       }
       .width('100%').padding({ left: 20, right: 20, top: 14, bottom: 10 }).backgroundColor(ThemeUtil.cardBg(this.darkMode))
 
@@ -193,7 +199,7 @@ export struct StudyContent {
                 Text(day).fontSize(26 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode))
                 Blank()
                 Text(`${this.courses.filter((c: CourseItem) => c.day === day).length}节课`)
-                  .fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                  .fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
               }
 
               if (this.courses.filter((c: CourseItem) => c.day === day).length === 0) {
@@ -208,12 +214,12 @@ export struct StudyContent {
                       Text(course.name).fontSize(26 * this.fontScale).lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY).fontColor(ThemeUtil.titleColor(this.darkMode))
                       if (course.remindOn !== false) {
                         SymbolGlyph($r('sys.symbol.bell'))
-                          .fontSize(20)
+                          .fontSize(24)
                           .fontColor([AppColors.PRIMARY])
                           .onClick(() => this.publishCourseNotification(course))
                       }
                     }
-                    Text(`${course.time} · ${course.place}`).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                    Text(`${course.time} · ${course.place}`).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
                   }
                   .alignItems(HorizontalAlign.Start).layoutWeight(1)
                 }
@@ -255,56 +261,138 @@ export struct StudyContent {
   // ===== 成绩查询 =====
   @Builder GradeList() {
     Column({ space: 14 }) {
-      Row() {
-        Text(`学号：${this.studentId}`).fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
-        Blank()
-        Button('刷新成绩').height(36).fontSize(24).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.PRIMARY).borderRadius(8)
-          .onClick(() => this.getUIContext()?.getPromptAction()?.showToast({ message: '成绩已刷新' }))
-      }
-      .width('100%')
+      if (!this.gradeLoggedIn) {
+        // 模拟登录界面
+        Column({ space: 16 }) {
+          Text('成绩查询')
+            .fontSize(28)
+            .fontWeight(600)
+            .fontColor(ThemeUtil.titleColor(this.darkMode))
+            .textAlign(TextAlign.Center)
+            .width('100%')
 
-      // 排序
-      Row({ space: 8 }) {
-        Text('排序：').fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
-        ForEach(['成绩', '绩点'], (sort: string) => {
-          Text(sort).fontSize(22 * this.fontScale)
-            .fontColor(this.gradeSortBy === (sort === '成绩' ? 'score' : 'point') ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
-            .padding({ left: 12, right: 12, top: 5, bottom: 5 })
-            .backgroundColor(this.gradeSortBy === (sort === '成绩' ? 'score' : 'point') ? AppColors.PRIMARY : AppColors.DIVIDER)
-            .borderRadius(14)
+          Text('请输入学号和密码查询成绩')
+            .fontSize(24)
+            .fontColor(ThemeUtil.subColor(this.darkMode))
+            .textAlign(TextAlign.Center)
+            .width('100%')
+
+          // 学号输入框
+          Row({ space: 10 }) {
+            Text('🎓').fontSize(24)
+            TextInput({ text: this.studentId, placeholder: '请输入学号' })
+              .fontSize(24)
+              .backgroundColor(Color.Transparent)
+              .layoutWeight(1)
+              .onChange((v: string) => this.studentId = v)
+          }
+          .height(48)
+          .padding({ left: 16, right: 16 })
+          .backgroundColor(ThemeUtil.cardBg(this.darkMode))
+          .borderRadius(8)
+
+          // 密码输入框
+          Row({ space: 10 }) {
+            Text('🔒').fontSize(24)
+            TextInput({ text: this.gradePassword, placeholder: '请输入密码' })
+              .fontSize(24)
+              .type(this.showGradePassword ? InputType.Normal : InputType.Password)
+              .backgroundColor(Color.Transparent)
+              .layoutWeight(1)
+              .onChange((v: string) => this.gradePassword = v)
+            Text(this.showGradePassword ? '🙈' : '👁')
+              .fontSize(24)
+              .onClick(() => { this.showGradePassword = !this.showGradePassword; })
+          }
+          .height(48)
+          .padding({ left: 16, right: 16 })
+          .backgroundColor(ThemeUtil.cardBg(this.darkMode))
+          .borderRadius(8)
+
+          // 查询按钮
+          Button('查询成绩')
+            .width('100%')
+            .height(48)
+            .fontSize(26)
+            .fontColor(Color.White)
+            .backgroundColor(AppColors.PRIMARY)
+            .borderRadius(8)
             .onClick(() => {
-              if (this.gradeSortBy === (sort === '成绩' ? 'score' : 'point')) {
-                this.gradeSortDesc = !this.gradeSortDesc;
-              } else {
-                this.gradeSortBy = (sort === '成绩' ? 'score' : 'point');
-                this.gradeSortDesc = true;
+              if (this.studentId.trim().length === 0) {
+                this.getUIContext()?.getPromptAction()?.showToast({ message: '请输入学号' });
+                return;
               }
+              if (this.gradePassword.trim().length === 0) {
+                this.getUIContext()?.getPromptAction()?.showToast({ message: '请输入密码' });
+                return;
+              }
+              this.gradeLoggedIn = true;
+              this.getUIContext()?.getPromptAction()?.showToast({ message: '查询成功' });
             })
-        })
-      }
+        }
+        .width('100%')
+        .padding(20)
+        .backgroundColor(ThemeUtil.cardBg(this.darkMode))
+        .borderRadius(8)
+      } else {
+        // 已登录 - 成绩列表
+        Row() {
+          Text(`学号：${this.studentId}`).fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
+          Blank()
+          Button('刷新成绩').height(36).fontSize(24).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.PRIMARY).borderRadius(8)
+            .onClick(() => this.getUIContext()?.getPromptAction()?.showToast({ message: '成绩已刷新' }))
+          Button('退出登录').height(36).fontSize(24).fontColor(AppColors.WARNING)
+            .backgroundColor(AppColors.WARNING_LIGHT).borderRadius(8).margin({ left: 8 })
+            .onClick(() => {
+              this.gradeLoggedIn = false;
+              this.gradePassword = '';
+            })
+        }
+        .width('100%')
 
-      List() {
-        ForEach(this.sortedGrades(), (grade: GradeItem) => {
-          ListItem() {
-            Row() {
-              Column({ space: 6 }) {
-                Text(grade.name).fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
-                Text(grade.examTime).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+        // 排序
+        Row({ space: 8 }) {
+          Text('排序：').fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+          ForEach(['成绩', '绩点'], (sort: string) => {
+            Text(sort).fontSize(24 * this.fontScale)
+              .fontColor(this.gradeSortBy === (sort === '成绩' ? 'score' : 'point') ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
+              .padding({ left: 12, right: 12, top: 5, bottom: 5 })
+              .backgroundColor(this.gradeSortBy === (sort === '成绩' ? 'score' : 'point') ? AppColors.PRIMARY : AppColors.DIVIDER)
+              .borderRadius(16)
+              .onClick(() => {
+                if (this.gradeSortBy === (sort === '成绩' ? 'score' : 'point')) {
+                  this.gradeSortDesc = !this.gradeSortDesc;
+                } else {
+                  this.gradeSortBy = (sort === '成绩' ? 'score' : 'point');
+                  this.gradeSortDesc = true;
+                }
+              })
+          })
+        }
+
+        List() {
+          ForEach(this.sortedGrades(), (grade: GradeItem) => {
+            ListItem() {
+              Row() {
+                Column({ space: 6 }) {
+                  Text(grade.name).fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
+                  Text(grade.examTime).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                }
+                .alignItems(HorizontalAlign.Start).layoutWeight(1)
+                Column({ space: 2 }) {
+                  Text(grade.score).fontSize(32 * this.fontScale).fontWeight(FontWeight.Bold)
+                    .fontColor(parseInt(grade.score) >= 90 ? AppColors.SUCCESS : parseInt(grade.score) >= 80 ? AppColors.PRIMARY : AppColors.WARNING)
+                  Text(`绩点 ${grade.point}`).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                }
+                .alignItems(HorizontalAlign.End)
               }
-              .alignItems(HorizontalAlign.Start).layoutWeight(1)
-              Column({ space: 2 }) {
-                Text(grade.score).fontSize(30 * this.fontScale).fontWeight(FontWeight.Bold)
-                  .fontColor(parseInt(grade.score) >= 90 ? AppColors.SUCCESS : parseInt(grade.score) >= 80 ? AppColors.PRIMARY : AppColors.WARNING)
-                Text(`绩点 ${grade.point}`).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
-              }
-              .alignItems(HorizontalAlign.End)
-            }
-             .width('100%').padding(16).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
-           }
-           .margin({ bottom: 10 })
-         }, (grade: GradeItem) => grade.name + grade.examTime)
-       }
-       .width('100%').height(360).scrollBar(BarState.Off)
+               .width('100%').padding(16).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+             }
+             .margin({ bottom: 10 })
+           }, (grade: GradeItem) => grade.name + grade.examTime)
+         }
+         .width('100%').height(360).scrollBar(BarState.Off)
+      }
     }
   }
 
@@ -333,11 +421,11 @@ export struct StudyContent {
       Scroll() {
         Row({ space: 8 }) {
           ForEach(this.bookFilters, (f: string) => {
-            Text(f).fontSize(22 * this.fontScale)
+            Text(f).fontSize(24 * this.fontScale)
               .fontColor(f === this.bookFilter ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
               .padding({ left: 12, right: 12, top: 5, bottom: 5 })
               .backgroundColor(f === this.bookFilter ? AppColors.PRIMARY : AppColors.DIVIDER)
-              .borderRadius(14)
+              .borderRadius(16)
               .onClick(() => this.bookFilter = f)
           })
         }
@@ -358,8 +446,8 @@ export struct StudyContent {
               Column({ space: 6 }) {
                 Text(book.name).fontSize(26 * this.fontScale).lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY).fontColor(ThemeUtil.titleColor(this.darkMode)).maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
-                Text(`${book.author} | ${book.isbn}`).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
-                Text(`${book.location} · 剩余${book.count}册`).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                Text(`${book.author} | ${book.isbn}`).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                Text(`${book.location} · 剩余${book.count}册`).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
               }
               .alignItems(HorizontalAlign.Start).layoutWeight(1)
 
@@ -368,12 +456,19 @@ export struct StudyContent {
                 .fontSize(28)
                 .fontColor(book.status === 'saved' ? AppColors.WARNING : ThemeUtil.subColor(this.darkMode))
                 .onClick(() => {
-                  if (book.status === 'saved') {
-                    book.status = 'none';
-                  } else {
+                  if (book.status === 'none') {
                     book.status = 'saved';
+                    this.getUIContext()?.getPromptAction()?.showToast({ message: '已收藏' });
+                  } else if (book.status === 'saved') {
+                    book.status = 'want';
+                    this.getUIContext()?.getPromptAction()?.showToast({ message: '标记想看' });
+                  } else if (book.status === 'want') {
+                    book.status = 'borrowed';
+                    this.getUIContext()?.getPromptAction()?.showToast({ message: '标记已借' });
+                  } else {
+                    book.status = 'none';
+                    this.getUIContext()?.getPromptAction()?.showToast({ message: '取消标记' });
                   }
-                  this.getUIContext()?.getPromptAction()?.showToast({ message: book.status === 'saved' ? '已收藏' : '已取消收藏' });
                 })
             }
             .width('100%').padding(16).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)

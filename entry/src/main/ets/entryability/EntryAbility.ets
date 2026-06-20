@@ -1,6 +1,7 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
+import { DataManager } from '../utils/DataManager';
 
 /**
  * 【3.1.1 应用入口】EntryAbility - Stage模型主入口
@@ -18,11 +19,19 @@ export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(DOMAIN, TAG, '=== Ability onCreate ===');
     try {
-      // 设置颜色模式为跟随系统（浅色/深色自动切换）
       this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
     } catch (err) {
       hilog.error(DOMAIN, TAG, 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
+    AppStorage.setOrCreate('darkMode', false);
+    AppStorage.setOrCreate('fontScale', 1.0);
+    DataManager.loadSettingBoolean('darkMode', false).then((dm: boolean) => {
+      AppStorage.setOrCreate('darkMode', dm);
+    });
+    DataManager.loadSettingString('fontSize', 'normal').then((fs: string) => {
+      const map: Record<string, number> = { 'small': 0.85, 'normal': 1.0, 'large': 1.2 };
+      AppStorage.setOrCreate('fontScale', map[fs] || 1.0);
+    });
   }
 
   onDestroy(): void {

@@ -1,6 +1,7 @@
 import router from '@ohos.router';
 import { picker } from '@kit.CoreFileKit';
 import { AppColors } from '../../common/constants/AppColors';
+import { StatusBarUtil } from '../../common/utils/StatusBarUtil';
 import { LostItem } from '../../common/constants/DataModels';
 import { DataManager } from '../../utils/DataManager';
 
@@ -29,23 +30,30 @@ struct LostPublish {
   @State phone: string = '';
   @State imageUris: string[] = [];
   @State hasImage: boolean = false;
+  @State statusBarHeight: number = 0;
 
   private categories: string[] = ['校园卡', '书包', '电子产品', '衣物', '钥匙', '书籍', '其他'];
   private places: string[] = ['一食堂', '二食堂', '图书馆', '教学楼A', '教学楼B', '信工楼', '操场', '宿舍楼'];
 
-  aboutToAppear(): void {
+  async aboutToAppear(): Promise<void> {
+    this.statusBarHeight = await StatusBarUtil.getStatusBarHeight(this.getUIContext().getHostContext());
     this.time = this.getTodayStr();
   }
 
   build() {
     Column() {
+      // 状态栏占位
+      Row()
+        .width('100%')
+        .height(this.statusBarHeight)
+        .backgroundColor(AppColors.BG_CARD)
       // 顶部导航
       Row() {
         Image($r('app.media.ic_back'))
           .width(24).height(24).fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text('发布信息')
-          .fontSize(30).fontWeight(600).fontColor(AppColors.TEXT_PRIMARY)
+          .fontSize(28).fontWeight(600).fontColor(AppColors.TEXT_PRIMARY)
           .margin({ left: 8 }).layoutWeight(1)
       }
       .width('100%').height(52).padding({ left: 16, right: 16 }).backgroundColor(AppColors.BG_CARD)
@@ -54,12 +62,12 @@ struct LostPublish {
         Column({ space: 18 }) {
           // 【3.5.1 类型切换】失物/拾物单选
           Row({ space: 0 }) {
-            Button('我丢了东西').height(40).fontSize(15).layoutWeight(1)
+            Button('我丢了东西').height(48).fontSize(24).layoutWeight(1)
               .fontColor(this.publishType === '失物' ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
               .backgroundColor(this.publishType === '失物' ? AppColors.WARNING : AppColors.DIVIDER)
               .borderRadius({ topLeft: 8, bottomLeft: 8 })
               .onClick(() => this.publishType = '失物')
-            Button('我捡到东西').height(40).fontSize(15).layoutWeight(1)
+            Button('我捡到东西').height(48).fontSize(24).layoutWeight(1)
               .fontColor(this.publishType === '拾物' ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
               .backgroundColor(this.publishType === '拾物' ? AppColors.SUCCESS : AppColors.DIVIDER)
               .borderRadius({ topRight: 8, bottomRight: 8 })
@@ -71,12 +79,12 @@ struct LostPublish {
 
           // 【3.5.1 分类】单选胶囊
           Column({ space: 8 }) {
-            Text('物品分类').fontSize(15).fontWeight(FontWeight.Medium).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
+            Text('物品分类').fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
             Scroll() {
               Row({ space: 8 }) {
                 ForEach(this.categories, (cat: string) => {
                   Text(cat)
-                    .fontSize(13)
+                    .fontSize(24)
                     .fontColor(cat === this.category ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
                     .padding({ left: 14, right: 14, top: 7, bottom: 7 })
                     .backgroundColor(cat === this.category ? AppColors.PRIMARY : AppColors.DIVIDER)
@@ -90,11 +98,11 @@ struct LostPublish {
 
           // 丢失/拾取地点 - 常用地点快速选择
           Column({ space: 8 }) {
-            Text('地点').fontSize(15).fontWeight(FontWeight.Medium).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
+            Text('地点').fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
             Row({ space: 8 }) {
               ForEach(this.places.slice(0, 4), (p: string) => {
                 Text(p)
-                  .fontSize(13)
+                  .fontSize(24)
                   .fontColor(this.place === p ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
                   .padding({ left: 12, right: 12, top: 7, bottom: 7 })
                   .backgroundColor(this.place === p ? AppColors.PRIMARY : AppColors.DIVIDER)
@@ -103,7 +111,7 @@ struct LostPublish {
               })
             }
             TextInput({ text: this.place, placeholder: '或手动输入详细地点' })
-              .height(42).fontSize(14).backgroundColor(AppColors.BG_CARD).borderRadius(8).padding({ left: 12, right: 12 })
+              .height(48).fontSize(24).backgroundColor(AppColors.BG_CARD).borderRadius(8).padding({ left: 12, right: 12 })
               .onChange((v: string) => this.place = v)
           }
 
@@ -112,9 +120,9 @@ struct LostPublish {
 
           // 描述
           Column({ space: 6 }) {
-            Text('物品描述').fontSize(15).fontWeight(FontWeight.Medium).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
+            Text('物品描述').fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
             TextArea({ text: this.desc, placeholder: '请详细描述物品特征（颜色、品牌、特殊标记等）' })
-              .height(100).fontSize(14).backgroundColor(AppColors.BG_CARD).borderRadius(8).padding(12)
+              .height(100).fontSize(26).backgroundColor(AppColors.BG_CARD).borderRadius(8).padding(12)
               .onChange((v: string) => this.desc = v)
           }
 
@@ -123,17 +131,17 @@ struct LostPublish {
 
           // 【3.5.1 图片上传】本地图片读取
           Column({ space: 8 }) {
-            Text('物品图片').fontSize(15).fontWeight(FontWeight.Medium).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
+            Text('物品图片').fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
             Row({ space: 8 }) {
               // 已选图片缩略图
               ForEach(this.imageUris, (uri: string) => {
                 Stack() {
                   Image($r('app.media.foreground'))
-                    .width(72).height(72).objectFit(ImageFit.Cover).borderRadius(6)
+                    .width(72).height(72).objectFit(ImageFit.Cover).borderRadius(8)
                   Text('✕')
                     .fontSize(12).fontColor(AppColors.BG_CARD)
                     .width(20).height(20).textAlign(TextAlign.Center)
-                    .backgroundColor('#33000000').borderRadius(10)
+                    .backgroundColor('#33000000').borderRadius(8)
                     .position({ x: 48, y: -6 })
             .onClick(async () => {
                       const idx = this.imageUris.indexOf(uri);
@@ -145,22 +153,22 @@ struct LostPublish {
               if (this.imageUris.length < 3) {
                 Column() {
                   Text('+').fontSize(28).fontColor(AppColors.PRIMARY)
-                  Text('添加图片').fontSize(11).fontColor(AppColors.TEXT_SECONDARY)
+                  Text('添加图片').fontSize(24).fontColor(AppColors.TEXT_SECONDARY)
                 }
                 .width(72).height(72)
                 .justifyContent(FlexAlign.Center)
                 .backgroundColor(AppColors.PRIMARY_LIGHT)
-                .borderRadius(6)
+                .borderRadius(8)
                 .border({ width: 1, color: AppColors.PRIMARY, style: BorderStyle.Dashed })
                 .onClick(() => this.pickImage())
               }
             }
-            Text('最多3张，支持JPG/PNG格式').fontSize(11).fontColor(AppColors.TEXT_PLACEHOLDER)
+            Text('最多3张，支持JPG/PNG格式').fontSize(24).fontColor(AppColors.TEXT_PLACEHOLDER)
           }
 
           // 提交按钮
           Button('发 布')
-            .width('100%').height(48).fontSize(18).fontColor(AppColors.BG_CARD)
+            .width('100%').height(48).fontSize(26).fontColor(AppColors.BG_CARD)
             .backgroundColor(this.publishType === '失物' ? AppColors.WARNING : AppColors.SUCCESS)
             .borderRadius(8)
             .onClick(async () => {
@@ -196,9 +204,9 @@ struct LostPublish {
   @Builder
   InputField(label: string, placeholder: string, value: string, callback: (v: string) => void) {
     Column({ space: 6 }) {
-      Text(label).fontSize(15).fontWeight(FontWeight.Medium).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
+      Text(label).fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
       TextInput({ text: value, placeholder: placeholder })
-        .height(44).fontSize(14).backgroundColor(AppColors.BG_CARD).borderRadius(8).padding({ left: 12, right: 12 })
+        .height(48).fontSize(24).backgroundColor(AppColors.BG_CARD).borderRadius(8).padding({ left: 12, right: 12 })
         .onChange((v: string) => callback(v))
     }
   }

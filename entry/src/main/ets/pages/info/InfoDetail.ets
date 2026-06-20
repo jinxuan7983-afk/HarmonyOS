@@ -1,6 +1,8 @@
 import router from '@ohos.router';
 import { pasteboard } from '@kit.BasicServicesKit';
 import { AppColors } from '../../common/constants/AppColors';
+import { DataManager } from '../../utils/DataManager';
+import { CollectionItem } from '../../common/constants/DataModels';
 
 /**
  * 【3.3.2 校园资讯详情页】
@@ -30,8 +32,9 @@ struct InfoDetail {
   @State summary: string = '';
   @State collected: boolean = false;
   @State fullScreenImage: boolean = false;
+  private collections: CollectionItem[] = [];
 
-  aboutToAppear(): void {
+  async aboutToAppear(): Promise<void> {
     const params = router.getParams() as RouterParams;
     if (params) {
       this.title = params.title || '未命名资讯';
@@ -39,6 +42,25 @@ struct InfoDetail {
       this.time = params.time || '';
       this.summary = params.summary || '';
     }
+    // 加载收藏列表，检查当前资讯是否已收藏
+    const saved = await DataManager.loadCollections();
+    if (saved.length > 0) {
+      this.collections = saved as CollectionItem[];
+    }
+    this.collected = this.collections.some((c: CollectionItem) => c.title === this.title);
+  }
+
+  private async toggleCollection(): Promise<void> {
+    this.collected = !this.collected;
+    if (this.collected) {
+      const now = new Date();
+      const timeStr = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      this.collections.push({ title: this.title, category: '资讯', time: timeStr, detail: this.summary.substring(0, 20) });
+    } else {
+      this.collections = this.collections.filter((c: CollectionItem) => c.title !== this.title);
+    }
+    await DataManager.saveCollections(this.collections);
+    this.getUIContext()?.getPromptAction()?.showToast({ message: this.collected ? '已收藏' : '取消收藏' });
   }
 
   build() {
@@ -51,18 +73,15 @@ struct InfoDetail {
           .fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text('资讯详情')
-          .fontSize(30)
+          .fontSize(28)
           .fontWeight(600)
           .fontColor(AppColors.TEXT_PRIMARY)
           .margin({ left: 8 })
           .layoutWeight(1)
         Text(this.collected ? '★' : '☆')
-          .fontSize(20)
+          .fontSize(24)
           .fontColor(this.collected ? AppColors.WARNING : AppColors.TEXT_SECONDARY)
-          .onClick(() => {
-            this.collected = !this.collected;
-            this.getUIContext()?.getPromptAction()?.showToast({ message: this.collected ? '已收藏' : '取消收藏' });
-          })
+          .onClick(() => this.toggleCollection())
       }
       .width('100%')
       .height(52)
@@ -81,7 +100,7 @@ struct InfoDetail {
             // 图片放大按钮
             Column() {
               Text('🔍 点击放大查看')
-                .fontSize(13)
+                .fontSize(24)
                 .fontColor(AppColors.BG_CARD)
                 .padding({ left: 12, right: 12, top: 6, bottom: 6 })
                 .backgroundColor('#33000000')
@@ -111,17 +130,17 @@ struct InfoDetail {
 
             Row({ space: 12 }) {
               Text(this.category)
-                .fontSize(14)
+                .fontSize(24)
                 .fontColor(AppColors.PRIMARY)
                 .padding({ left: 10, right: 10, top: 4, bottom: 4 })
                 .backgroundColor(AppColors.PRIMARY_LIGHT)
-                .borderRadius(6)
+                .borderRadius(8)
               Text(this.time)
-                .fontSize(14)
+                .fontSize(24)
                 .fontColor(AppColors.TEXT_SECONDARY)
               Blank()
               Text('阅读 1.2k')
-                .fontSize(13)
+                .fontSize(24)
                 .fontColor(AppColors.TEXT_SECONDARY)
             }
           }
@@ -140,12 +159,12 @@ struct InfoDetail {
                     .width('100%')
                     .height(180)
                     .objectFit(ImageFit.Cover)
-                    .borderRadius(6)
+                    .borderRadius(8)
                     .onClick(() => {
                       this.getUIContext()?.getPromptAction()?.showToast({ message: '图片已放大（模拟全屏预览）' });
                     })
                   Text(paragraph.replace('【图片】', ''))
-                    .fontSize(13)
+                    .fontSize(24)
                     .fontColor(AppColors.TEXT_SECONDARY)
                     .textAlign(TextAlign.Center)
                     .width('100%')
@@ -153,7 +172,7 @@ struct InfoDetail {
               } else if (paragraph.startsWith('##')) {
                 // 小标题
                 Text(paragraph.replace('##', ''))
-                  .fontSize(20)
+                  .fontSize(24)
                   .fontWeight(FontWeight.Bold)
                   .fontColor(AppColors.TEXT_PRIMARY)
                   .width('100%')
@@ -164,9 +183,9 @@ struct InfoDetail {
               } else {
                 // 正文段落
                 Text(paragraph)
-                  .fontSize(17)
+                  .fontSize(26)
                   .fontColor(AppColors.TEXT_TERTIARY)
-                  .lineHeight(30)
+                  .lineHeight(26 * AppColors.LINE_HEIGHT_BODY)
                   .width('100%')
                   .onClick(() => {
                     const pasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, paragraph);
@@ -184,12 +203,12 @@ struct InfoDetail {
           // 底部操作
           Row({ space: 16 }) {
             Button('📋 复制全文')
-              .fontSize(14)
+              .fontSize(24)
               .fontColor(AppColors.PRIMARY)
               .backgroundColor(AppColors.PRIMARY_LIGHT)
               .layoutWeight(1)
               .borderRadius(8)
-              .height(44)
+              .height(48)
               .onClick(() => {
                 const fullText = `【${this.category}】${this.title}\n\n${this.summary}`;
                 const pasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, fullText);
@@ -197,12 +216,12 @@ struct InfoDetail {
                 this.getUIContext()?.getPromptAction()?.showToast({ message: '全文已复制到剪贴板' });
               })
             Button('分享')
-              .fontSize(14)
+              .fontSize(24)
               .fontColor(AppColors.BG_CARD)
               .backgroundColor(AppColors.PRIMARY)
               .layoutWeight(1)
               .borderRadius(8)
-              .height(44)
+              .height(48)
               .onClick(() => {
                 this.getUIContext()?.getPromptAction()?.showToast({ message: '已生成分享链接（本地模拟）' });
               })

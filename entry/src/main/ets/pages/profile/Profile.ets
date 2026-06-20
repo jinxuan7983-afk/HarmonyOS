@@ -13,8 +13,8 @@ import { DataManager, UserInfoData } from '../../utils/DataManager';
 
 @Component
 export struct ProfileContent {
-  @Link darkMode: boolean;
-  @Link fontScale: number;
+  @StorageLink('darkMode') darkMode: boolean = false;
+  @StorageLink('fontScale') fontScale: number = 1.0;
   @StorageLink('profileUpdated') @Watch('onProfileUpdated') profileUpdated: number = 0;
   onSwitchTab?: (index: number) => void;
   @State nickname: string = '校园助手用户';
@@ -108,8 +108,8 @@ export struct ProfileContent {
             // 导航栏标题（右侧设置图标）
             Row() {
               Text('我的')
-                .fontSize(30 * this.fontScale).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
-                .lineHeight(30 * this.fontScale * AppColors.LINE_HEIGHT_TITLE_L)
+                .fontSize(28).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
+                .lineHeight(28 * AppColors.LINE_HEIGHT_TITLE_L)
                 .layoutWeight(1)
               Text('⚙')
                 .fontSize(26)
@@ -192,7 +192,7 @@ export struct ProfileContent {
       Column({ space: 4 }) {
         Text(this.nickname).fontSize(28 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode))
         Text(`${this.studentId} · ${this.college}`).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
-        Text(this.major).fontSize(22 * this.fontScale).fontColor(AppColors.PRIMARY)
+        Text(this.major).fontSize(24 * this.fontScale).fontColor(AppColors.PRIMARY)
       }
       .alignItems(HorizontalAlign.Start).layoutWeight(1)
 
@@ -226,7 +226,7 @@ export struct ProfileContent {
       Text('›').fontSize(26 * this.fontScale).fontColor(AppColors.PRIMARY)
     }
     .width('100%').height(48).padding({ left: 12, right: 12 })
-    .borderRadius(6)
+    .borderRadius(8)
     .onClick(() => action())
   }
 
@@ -236,7 +236,7 @@ export struct ProfileContent {
       Scroll() {
         Row({ space: 8 }) {
           ForEach(this.collectionCategories, (cat: string) => {
-            Text(cat).fontSize(22 * this.fontScale)
+            Text(cat).fontSize(24 * this.fontScale)
               .fontColor(cat === this.collectionFilter ? AppColors.BG_CARD : ThemeUtil.subColor(this.darkMode))
               .padding({ left: 14, right: 14, top: 6, bottom: 6 })
               .backgroundColor(cat === this.collectionFilter ? AppColors.PRIMARY : (this.darkMode ? AppColors.BG_DARK_DIVIDER : AppColors.DIVIDER))
@@ -255,17 +255,17 @@ export struct ProfileContent {
         Row() {
           Text(this.getCollectionIcon(item.category)).fontSize(26 * this.fontScale)
           Column({ space: 4 }) {
-            Text(item.title).fontSize(26 * this.fontScale).fontWeight(FontWeight.Medium).fontColor(ThemeUtil.titleColor(this.darkMode)).maxLines(1).lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
-            Text(item.detail).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+            Text(item.title).fontSize(26 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode)).maxLines(1).lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
+            Text(item.detail).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
           }
           .alignItems(HorizontalAlign.Start).layoutWeight(1).margin({ left: 10 })
-          Text(item.time).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+          Text(item.time).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
           Text('✕').fontSize(24 * this.fontScale).fontColor(AppColors.WARNING).margin({ left: 10 })
             .onClick(() => { this.collections.splice(idx, 1); this.getUIContext()?.getPromptAction()?.showToast({ message: '已取消收藏' }); })
         }
         .padding(14).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
           .margin({ bottom: 8 })
-         }, (todo: TodoItemFull) => String(todo.id))
+         }, (item: CollectionItem) => item.title + item.time)
     }
     .padding(14).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
   }
@@ -291,17 +291,17 @@ export struct ProfileContent {
 
       Row({ space: 8 }) {
         ForEach(this.todoCategories, (cat: string) => {
-          Text(cat).fontSize(22 * this.fontScale)
+          Text(cat).fontSize(24 * this.fontScale)
             .fontColor(cat === this.todoCategory ? AppColors.BG_CARD : ThemeUtil.subColor(this.darkMode))
             .padding({ left: 14, right: 14, top: 6, bottom: 6 })
             .backgroundColor(cat === this.todoCategory ? AppColors.PRIMARY : (this.darkMode ? AppColors.BG_DARK_DIVIDER : AppColors.DIVIDER))
-            .borderRadius(14)
+            .borderRadius(16)
             .onClick(() => this.todoCategory = cat)
         })
         TextInput({ text: this.todoRemindTime, placeholder: '提醒时间' })
-          .height(40).fontSize(22 * this.fontScale).width(90).backgroundColor(AppColors.BG_CARD).borderRadius(8).padding({ left: 8, right: 8 })
+          .height(36).fontSize(24 * this.fontScale).width(90).backgroundColor(AppColors.BG_CARD).borderRadius(8).padding({ left: 8, right: 8 })
           .onChange((v: string) => this.todoRemindTime = v)
-        Button('添加').height(40).fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.PRIMARY).borderRadius(8)
+        Button('添加').height(36).fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.PRIMARY).borderRadius(8)
           .onClick(() => {
             if (!this.todoInput.trim()) { this.getUIContext()?.getPromptAction()?.showToast({ message: '请输入待办内容' }); return; }
             this.todoIdCounter += 1;
@@ -322,20 +322,20 @@ export struct ProfileContent {
 
   @Builder BatchActions() {
     Row({ space: 8 }) {
-      Button('全选').height(38).fontSize(24 * this.fontScale).fontColor(AppColors.PRIMARY).backgroundColor(AppColors.PRIMARY_LIGHT).borderRadius(8)
+      Button('全选').height(36).fontSize(24 * this.fontScale).fontColor(AppColors.PRIMARY).backgroundColor(AppColors.PRIMARY_LIGHT).borderRadius(8)
         .onClick(() => { this.todos.forEach((t: TodoItemFull) => this.selectedIds.add(t.id));
           this.selectedIds = new Set(this.selectedIds); })
-      Button('取消全选').height(38).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+      Button('取消全选').height(36).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
         .backgroundColor(this.darkMode ? AppColors.BG_DARK_DIVIDER : AppColors.DIVIDER).borderRadius(8)
         .onClick(() => { this.selectedIds.clear(); this.selectedIds = new Set(); })
       Blank()
-      Button('标记完成').height(38).fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.SUCCESS).borderRadius(8)
+      Button('标记完成').height(36).fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.SUCCESS).borderRadius(8)
         .onClick(() => {
           this.todos.forEach((t: TodoItemFull) => { if (this.selectedIds.has(t.id)) t.done = true; });
           this.todoVersion += 1;
           this.selectedIds.clear(); this.getUIContext()?.getPromptAction()?.showToast({ message: '已批量标记完成' });
         })
-      Button('删除').height(38).fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.DANGER).borderRadius(8)
+      Button('删除').height(36).fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.DANGER).borderRadius(8)
         .onClick(() => {
           this.todos = this.todos.filter((t: TodoItemFull) => !this.selectedIds.has(t.id));
           this.todoVersion += 1;
@@ -368,16 +368,16 @@ export struct ProfileContent {
                   .lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
                   .decoration({ type: todo.done ? TextDecorationType.LineThrough : TextDecorationType.None })
                 Row({ space: 8 }) {
-                  Text(todo.category).fontSize(20 * this.fontScale).fontColor(AppColors.BG_CARD)
+                  Text(todo.category).fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD)
                     .padding({ left: 8, right: 8, top: 2, bottom: 2 })
                     .backgroundColor(todo.category === '学习' ? AppColors.PRIMARY : (todo.category === '生活' ? AppColors.SUCCESS : AppColors.WARNING))
                     .borderRadius(4)
-                  Text(`⏰ ${todo.remindTime}`).fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                  Text(`⏰ ${todo.remindTime}`).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
                 }
               }
               .alignItems(HorizontalAlign.Start).layoutWeight(1).margin({ left: 8 })
               if (!this.batchMode) {
-                Text('删').fontSize(22 * this.fontScale).fontColor(AppColors.WARNING).backgroundColor(AppColors.WARNING_LIGHT).borderRadius(4)
+                Text('删').fontSize(24 * this.fontScale).fontColor(AppColors.WARNING).backgroundColor(AppColors.WARNING_LIGHT).borderRadius(8)
                   .padding({ left: 8, right: 8, top: 4, bottom: 4 })
                   .onClick(() => {
                     const realIdx = this.todos.indexOf(todo);
@@ -402,102 +402,20 @@ export struct ProfileContent {
     }
   }
 
-  // ===== 设置面板 =====
+  // ===== 设置面板（入口按钮，跳转独立设置页） =====
   @Builder SettingsPanel() {
     Column({ space: 0 }) {
-      // 深色模式
       Row() {
-        Text('🌙').fontSize(24).fontColor(AppColors.PRIMARY).width(28).textAlign(TextAlign.Center)
-        Text('深色模式').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode)).layoutWeight(1).margin({ left: 10 })
-        Toggle({ type: ToggleType.Switch, isOn: this.darkMode })
-          .selectedColor(AppColors.PRIMARY)
-          .onChange((v: boolean) => {
-            this.darkMode = v;
-            DataManager.saveSettingBoolean('darkMode', v);
-          })
+        Text('⚙').fontSize(24).fontColor(AppColors.PRIMARY).width(28).textAlign(TextAlign.Center)
+        Text('打开设置').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode)).layoutWeight(1).margin({ left: 10 })
+        Text('›').fontSize(26 * this.fontScale).fontColor(AppColors.PRIMARY)
       }
-      .width('100%').height(48).padding({ left: 16, right: 16 })
-      Divider().color(AppColors.DIVIDER).strokeWidth(1).width('94%')
-
-      // 字体大小
-      Row() {
-        Text('🔤').fontSize(24).fontColor(AppColors.PRIMARY).width(28).textAlign(TextAlign.Center)
-        Text('字体大小').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode)).layoutWeight(1).margin({ left: 10 })
-        Row({ space: 16 }) {
-          ForEach(['小', '中', '大'], (label: string, index: number) => {
-            Row({ space: 4 }) {
-              Radio({ value: `radio_${index}`, group: 'fontGroup' })
-                .checked(this.selectedFont === ['small', 'normal', 'large'][index])
-                .radioStyle({ checkedBackgroundColor: AppColors.PRIMARY })
-                .width(22).height(22)
-              Text(label).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
-            }
-            .onClick(() => {
-              const vals = ['small', 'normal', 'large'];
-              const scales = [0.85, 1.0, 1.2];
-              this.selectedFont = vals[index];
-              this.fontScale = scales[index];
-              DataManager.saveSettingString('fontSize', vals[index]);
-            })
-          })
-        }
-      }
-      .width('100%').height(48).padding({ left: 16, right: 16 })
-      Divider().color(AppColors.DIVIDER).strokeWidth(1).width('94%')
-
-      // 通知设置
-      Row() {
-        Text('🔔').fontSize(24).fontColor(AppColors.PRIMARY).width(28).textAlign(TextAlign.Center)
-        Text('课程提醒').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode)).layoutWeight(1).margin({ left: 10 })
-        Toggle({ type: ToggleType.Switch, isOn: this.courseNotice })
-          .selectedColor(AppColors.PRIMARY)
-          .onChange((v: boolean) => {
-            this.courseNotice = v;
-            DataManager.saveSettingBoolean('courseNotice', v);
-          })
-      }
-      .width('100%').height(48).padding({ left: 16, right: 16 })
-
-      Row() {
-        Text('公告提醒').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode)).layoutWeight(1)
-        Toggle({ type: ToggleType.Switch, isOn: this.announcementNotice })
-          .selectedColor(AppColors.PRIMARY)
-          .onChange((v: boolean) => {
-            this.announcementNotice = v;
-            DataManager.saveSettingBoolean('announcementNotice', v);
-          })
-      }
-      .width('100%').height(48).padding({ left: 16, right: 16 })
-
-      Row() {
-        Text('待办提醒').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode)).layoutWeight(1)
-        Toggle({ type: ToggleType.Switch, isOn: this.todoNotice })
-          .selectedColor(AppColors.PRIMARY)
-          .onChange((v: boolean) => {
-            this.todoNotice = v;
-            DataManager.saveSettingBoolean('todoNotice', v);
-          })
-      }
-      .width('100%').height(48).padding({ left: 16, right: 16 })
-      Divider().color(AppColors.DIVIDER).strokeWidth(1).width('94%')
-
-      // 清理缓存
-      Row() {
-        Text('🗑').fontSize(24).fontColor(AppColors.PRIMARY).width(28).textAlign(TextAlign.Center)
-        Text('清理缓存').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode)).layoutWeight(1).margin({ left: 10 })
-        Text(this.cacheSize).fontSize(24 * this.fontScale).fontColor(AppColors.TEXT_SECONDARY)
-        Text('清理').fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD)
-          .padding({ left: 14, right: 14, top: 6, bottom: 6 })
-          .backgroundColor(AppColors.WARNING).borderRadius(8)
-          .margin({ left: 10 })
-          .onClick(() => {
-            this.showCacheDialog = true;
-          })
-      }
-      .width('100%').height(48).padding({ left: 16, right: 16 })
+      .width('100%').height(56).padding({ left: 16, right: 16 })
+      .onClick(() => {
+        router.pushUrl({ url: 'pages/profile/Settings' });
+      })
     }
     .width('100%').backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
-    .padding({ top: 6, bottom: 6 })
   }
 
   // ===== 缓存清理确认弹窗 =====
@@ -507,7 +425,7 @@ export struct ProfileContent {
       Column({ space: 18 }) {
         Text('🗑 清理缓存').fontSize(28).fontWeight(700).fontColor(AppColors.TEXT_PRIMARY)
         Text('确定要清理本地缓存吗？\n将清除图片、音频及数据文件。').fontSize(24).fontColor(AppColors.TEXT_TERTIARY).lineHeight(36).textAlign(TextAlign.Center)
-        Text(`当前缓存：${this.cacheSize}`).fontSize(22).fontColor(AppColors.TEXT_SECONDARY)
+        Text(`当前缓存：${this.cacheSize}`).fontSize(24).fontColor(AppColors.TEXT_SECONDARY)
         Row({ space: 12 }) {
           Button('取消').layoutWeight(1).height(48).fontSize(26).fontColor(AppColors.TEXT_SECONDARY).backgroundColor(AppColors.DIVIDER).borderRadius(8)
             .onClick(() => { this.showCacheDialog = false; })
@@ -564,7 +482,7 @@ export struct ProfileContent {
       Text('版本号 V1.0.0（HarmonyOS NEXT）')
         .fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
       Text('信息工程学院 软件工程 开发团队')
-        .fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+        .fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
       Text('©2026 高校校园助手 保留所有权利')
         .fontSize(20 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
     }

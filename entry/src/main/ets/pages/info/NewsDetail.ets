@@ -1,6 +1,9 @@
 import router from '@ohos.router';
 import { pasteboard } from '@kit.BasicServicesKit';
 import { AppColors } from '../../common/constants/AppColors';
+import { StatusBarUtil } from '../../common/utils/StatusBarUtil';
+import { DataManager } from '../../utils/DataManager';
+import { CollectionItem } from '../../common/constants/DataModels';
 
 /**
  * 【3.3.1 校园公告详情页】
@@ -31,12 +34,16 @@ struct NewsDetail {
   @State collected: boolean = false;
   @State imageZoomVisible: boolean = false;
   @State currentImageIndex: number = 0;
+  @State statusBarHeight: number = 0;
   // 三级分类
   @State subCategory: string = '全部';
 
   private subCategories: string[] = ['全部', '学校通知', '学院通知', '社团通知'];
 
-  aboutToAppear(): void {
+  private collections: CollectionItem[] = [];
+
+  async aboutToAppear(): Promise<void> {
+    this.statusBarHeight = await StatusBarUtil.getStatusBarHeight(this.getUIContext().getHostContext());
     const params = router.getParams() as RouterParams;
     if (params) {
       this.title = params.title || '未命名公告';
@@ -44,10 +51,34 @@ struct NewsDetail {
       this.time = params.time || '';
       this.summary = params.summary || '';
     }
+    // 加载收藏列表，检查当前公告是否已收藏
+    const saved = await DataManager.loadCollections();
+    if (saved.length > 0) {
+      this.collections = saved as CollectionItem[];
+    }
+    this.collected = this.collections.some((c: CollectionItem) => c.title === this.title);
+  }
+
+  private async toggleCollection(): Promise<void> {
+    this.collected = !this.collected;
+    if (this.collected) {
+      const now = new Date();
+      const timeStr = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      this.collections.push({ title: this.title, category: '公告', time: timeStr, detail: this.summary.substring(0, 20) });
+    } else {
+      this.collections = this.collections.filter((c: CollectionItem) => c.title !== this.title);
+    }
+    await DataManager.saveCollections(this.collections);
+    this.getUIContext()?.getPromptAction()?.showToast({ message: this.collected ? '已收藏' : '已取消收藏' });
   }
 
   build() {
     Column() {
+      // 状态栏占位
+      Row()
+        .width('100%')
+        .height(this.statusBarHeight)
+        .backgroundColor(AppColors.BG_CARD)
       // 顶部导航栏
       Row() {
         Image($r('app.media.ic_back'))
@@ -56,22 +87,19 @@ struct NewsDetail {
           .fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text('公告详情')
-          .fontSize(30)
+          .fontSize(28)
           .fontWeight(600)
           .fontColor(AppColors.TEXT_PRIMARY)
           .margin({ left: 8 })
           .layoutWeight(1)
         // 收藏按钮
         Text(this.collected ? '★ 已收藏' : '☆ 收藏')
-          .fontSize(14)
+          .fontSize(24)
           .fontColor(this.collected ? AppColors.WARNING : AppColors.PRIMARY)
           .padding({ left: 10, right: 10, top: 6, bottom: 6 })
           .backgroundColor(this.collected ? AppColors.WARNING_LIGHT : AppColors.PRIMARY_LIGHT)
-          .borderRadius(6)
-          .onClick(() => {
-            this.collected = !this.collected;
-            this.getUIContext()?.getPromptAction()?.showToast({ message: this.collected ? '已收藏' : '已取消收藏' });
-          })
+          .borderRadius(8)
+          .onClick(() => this.toggleCollection())
       }
       .width('100%')
       .height(52)
@@ -86,8 +114,8 @@ struct NewsDetail {
           // 标题区
           Column({ space: 12 }) {
             Text(this.title)
-              .fontSize(22)
-              .fontWeight(FontWeight.Bold)
+              .fontSize(28)
+              .fontWeight(600)
               .fontColor(AppColors.TEXT_PRIMARY)
               .lineHeight(32)
               .width('100%')
@@ -95,20 +123,20 @@ struct NewsDetail {
             Row({ space: 12 }) {
               // 主分类标签
               Text(this.category)
-                .fontSize(12)
+                .fontSize(24)
                 .fontColor(AppColors.BG_CARD)
                 .padding({ left: 10, right: 10, top: 4, bottom: 4 })
                 .backgroundColor(AppColors.PRIMARY)
-                .borderRadius(6)
+                .borderRadius(8)
               // 子分类标签
               Text(this.subCategory)
-                .fontSize(12)
+                .fontSize(24)
                 .fontColor(AppColors.PRIMARY)
                 .padding({ left: 10, right: 10, top: 4, bottom: 4 })
                 .backgroundColor(AppColors.PRIMARY_LIGHT)
-                .borderRadius(6)
+                .borderRadius(8)
               Text(this.time)
-                .fontSize(13)
+                .fontSize(24)
                 .fontColor(AppColors.TEXT_SECONDARY)
             }
           }
@@ -123,23 +151,23 @@ struct NewsDetail {
           // 内容区
           Column({ space: 16 }) {
             Text('详细内容')
-              .fontSize(17)
-              .fontWeight(FontWeight.Bold)
+              .fontSize(26)
+              .fontWeight(600)
               .fontColor(AppColors.TEXT_PRIMARY)
               .alignSelf(ItemAlign.Start)
 
             Text(this.summary)
-              .fontSize(16)
+              .fontSize(26)
               .fontColor(AppColors.TEXT_TERTIARY)
-              .lineHeight(28)
+              .lineHeight(26 * AppColors.LINE_HEIGHT_BODY)
               .width('100%')
 
             // 模拟正文内容
             ForEach(this.getContentParagraphs(), (paragraph: string, index: number) => {
               Text(paragraph)
-                .fontSize(16)
+                .fontSize(26)
                 .fontColor(AppColors.TEXT_TERTIARY)
-                .lineHeight(28)
+                .lineHeight(26 * AppColors.LINE_HEIGHT_BODY)
                 .width('100%')
                 // 【3.3.2 文字复制】长按复制
                 .onClick(() => {
@@ -159,25 +187,22 @@ struct NewsDetail {
           Row({ space: 16 }) {
             // 【3.3.1 收藏】
             Button(this.collected ? '★ 已收藏' : '☆ 收藏')
-              .fontSize(14)
+              .fontSize(24)
               .fontColor(this.collected ? AppColors.WARNING : AppColors.PRIMARY)
               .backgroundColor(this.collected ? AppColors.WARNING_LIGHT : AppColors.PRIMARY_LIGHT)
               .layoutWeight(1)
               .borderRadius(8)
-              .height(44)
-              .onClick(() => {
-                this.collected = !this.collected;
-                this.getUIContext()?.getPromptAction()?.showToast({ message: this.collected ? '已收藏' : '已取消收藏' });
-              })
+              .height(48)
+              .onClick(() => this.toggleCollection())
 
             // 【3.3.1 分享 - 复制链接】
             Button('📋 复制链接')
-              .fontSize(14)
+              .fontSize(24)
               .fontColor(AppColors.BG_CARD)
               .backgroundColor(AppColors.PRIMARY)
               .layoutWeight(1)
               .borderRadius(8)
-              .height(44)
+              .height(48)
               .onClick(() => {
                 const linkText = `【校园公告】${this.title}\n来源：高校校园助手APP\n发布时间：${this.time}\n\n${this.summary}`;
                 const pasteboardData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, linkText);
@@ -208,7 +233,7 @@ struct NewsDetail {
     Row({ space: 8 }) {
       ForEach(this.subCategories, (item: string) => {
         Text(item)
-          .fontSize(13)
+          .fontSize(24)
           .fontColor(item === this.subCategory ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
           .padding({ left: 12, right: 12, top: 6, bottom: 6 })
           .backgroundColor(item === this.subCategory ? AppColors.PRIMARY : AppColors.DIVIDER)
@@ -247,7 +272,7 @@ struct NewsDetail {
               .width(72)
               .height(72)
               .objectFit(ImageFit.Cover)
-              .borderRadius(6)
+              .borderRadius(8)
               .onClick(() => {
                 this.currentImageIndex = idx;
                 this.getUIContext()?.getPromptAction()?.showToast({ message: `查看第${idx + 1}张图片（模拟大图预览）` });

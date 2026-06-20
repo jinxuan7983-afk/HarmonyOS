@@ -41,8 +41,12 @@ export class AppColors {
   static readonly BG_DARK_DIVIDER: string = '#374151';
 
   // 边框/分割线
-  static readonly DIVIDER: string = '#F0F0F0';
+  static readonly DIVIDER: string = '#E5E6EB';
   static readonly BORDER: string = '#E5E6EB';
+
+  // 第三方品牌色
+  static readonly WECHAT: string = '#07C160';
+  static readonly QQ: string = '#12B7F5';
 
   // 透明
   static readonly TRANSPARENT: string = '#00000000';

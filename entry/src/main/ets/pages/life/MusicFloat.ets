@@ -30,20 +30,20 @@ struct MusicFloat {
           .width(36).height(36).borderRadius(18)
           .rotate({ angle: this.playing ? 360 : 0 })
           .animation({ duration: 8000, curve: Curve.Linear, iterations: this.playing ? -1 : 1, playMode: PlayMode.Normal })
-          .backgroundColor('#F0F5FF')
+          .backgroundColor(AppColors.PRIMARY_LIGHT)
 
         Column({ space: 2 }) {
           Text(this.songName)
-            .fontSize(13).fontWeight(FontWeight.Medium).fontColor(AppColors.TEXT_PRIMARY)
+            .fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY)
             .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
           Text(this.singer)
-            .fontSize(11).fontColor(AppColors.TEXT_SECONDARY)
+            .fontSize(24).fontColor(AppColors.TEXT_SECONDARY)
             .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
         }
         .alignItems(HorizontalAlign.Start).layoutWeight(1)
 
         Text(this.playing ? '⏸' : '▶️')
-          .fontSize(22).fontColor(AppColors.PRIMARY)
+          .fontSize(24).fontColor(AppColors.PRIMARY)
           .onClick(() => {
             this.playing = !this.playing;
           })
@@ -70,7 +70,7 @@ struct MusicFloat {
     .width('100%')
     .height(52)
     .backgroundColor(AppColors.BG_CARD)
-    .borderRadius(12)
+    .borderRadius(8)
     .shadow({ radius: 8, color: '#33000000', offsetY: 2 })
     .padding(0)
   }

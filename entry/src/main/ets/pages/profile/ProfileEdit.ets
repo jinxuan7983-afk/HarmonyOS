@@ -62,7 +62,7 @@ struct ProfileEdit {
             router.back();
           })
         Text('编辑个人信息')
-          .fontSize(30).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode)).margin({ left: 8 }).layoutWeight(1)
+          .fontSize(28).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode)).margin({ left: 8 }).layoutWeight(1)
         Text('保存')
           .fontSize(26).fontColor(AppColors.BG_CARD)
           .padding({ left: 14, right: 14, top: 6, bottom: 6 })
@@ -86,7 +86,7 @@ struct ProfileEdit {
               Image(this.avatarUri || $r('app.media.logo'))
                 .width(100).height(100).borderRadius(50).border({ width: 3, color: AppColors.PRIMARY })
               Text('📷 更换头像')
-                .fontSize(22)
+                .fontSize(24)
                 .fontColor(AppColors.BG_CARD)
                 .width(100).height(100).borderRadius(50)
                 .backgroundColor('#33000000')
@@ -158,9 +158,12 @@ struct ProfileEdit {
         .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8).padding({ left: 16, right: 16 })
         .onChange((v: string) => this.confirmPwd = v)
       Button('确认修改').width('100%').height(48).fontSize(26).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.PRIMARY).borderRadius(8)
-        .onClick(() => {
+        .onClick(async () => {
           if (this.newPwd.length < 6) { this.getUIContext()?.getPromptAction()?.showToast({ message: '密码至少6位' }); return; }
           if (this.newPwd !== this.confirmPwd) { this.getUIContext()?.getPromptAction()?.showToast({ message: '两次密码不一致' }); return; }
+          const savedPwd = await DataManager.loadString('user_info', 'password', '123456');
+          if (this.oldPwd !== savedPwd) { this.getUIContext()?.getPromptAction()?.showToast({ message: '旧密码错误' }); return; }
+          await DataManager.saveString('user_info', 'password', this.newPwd);
           this.showPwdPanel = false;
           this.getUIContext()?.getPromptAction()?.showToast({ message: '密码修改成功' });
         })

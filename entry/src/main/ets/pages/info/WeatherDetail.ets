@@ -89,7 +89,7 @@ struct WeatherDetail {
           .width(24).height(24).fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text('天气详情')
-          .fontSize(30 * this.fontScale).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
+          .fontSize(28).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
           .margin({ left: 8 }).layoutWeight(1)
       }
       .width('100%').height(52).padding({ left: 16, right: 16 })
@@ -126,7 +126,7 @@ struct WeatherDetail {
       // 大温度数字
       Row() {
         Text(this.temperature)
-          .fontSize(64 * this.fontScale).fontWeight(700).fontColor(ThemeUtil.titleColor(this.darkMode))
+          .fontSize(32 * this.fontScale).fontWeight(700).fontColor(ThemeUtil.titleColor(this.darkMode))
         Text('℃')
           .fontSize(32 * this.fontScale).fontWeight(400).fontColor(ThemeUtil.subColor(this.darkMode))
           .margin({ left: 4, bottom: 12 })
@@ -148,7 +148,7 @@ struct WeatherDetail {
               Text(item.value)
                 .fontSize(24 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(item.color)
               Text(item.label)
-                .fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                .fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
             }
             .width('100%').height(64)
             .justifyContent(FlexAlign.Center)
@@ -217,9 +217,9 @@ struct WeatherDetail {
               Text(item.icon).fontSize(32 * this.fontScale)
               Text(item.title).fontSize(24 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
               Text(item.level)
-                .fontSize(22 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(item.color)
+                .fontSize(24 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(item.color)
               Text(item.desc)
-                .fontSize(20 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                .fontSize(24).fontColor(ThemeUtil.subColor(this.darkMode))
                 .maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
             }
             .width('100%').padding(12)

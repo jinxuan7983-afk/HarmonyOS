@@ -51,7 +51,7 @@ struct MusicList {
           .width(24).height(24).fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text('本地音乐')
-          .fontSize(30 * this.fontScale).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
+          .fontSize(28).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
           .margin({ left: 8 }).layoutWeight(1)
       }
       .width('100%').height(52).padding({ left: 16, right: 16 })
@@ -60,7 +60,7 @@ struct MusicList {
       // 搜索栏
       Row({ space: 12 }) {
         SymbolGlyph($r('sys.symbol.magnifyingglass'))
-          .fontSize(22).fontColor([AppColors.PRIMARY])
+          .fontSize(24).fontColor([AppColors.PRIMARY])
         TextInput({ text: this.searchText, placeholder: '搜索歌曲/歌手' })
           .fontSize(24).backgroundColor(Color.Transparent).layoutWeight(1)
           .onChange((v: string) => this.searchText = v)
@@ -83,7 +83,7 @@ struct MusicList {
           Text('暂无本地音乐')
             .fontSize(26 * this.fontScale).fontColor(AppColors.TEXT_PLACEHOLDER).margin({ top: 12 })
           Text('点击上方按钮导入音频文件')
-            .fontSize(22 * this.fontScale).fontColor(AppColors.TEXT_PLACEHOLDER).margin({ top: 8 })
+            .fontSize(24 * this.fontScale).fontColor(AppColors.TEXT_PLACEHOLDER).margin({ top: 8 })
         }
         .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center)
       } else {
@@ -100,11 +100,11 @@ struct MusicList {
                     .fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
                     .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
                   Text(song.singer)
-                    .fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                    .fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
                 }
                 .alignItems(HorizontalAlign.Start).layoutWeight(1)
                 Text(this.formatTime(song.duration))
-                  .fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                  .fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
               }
               .width('100%').padding({ left: 16, right: 16, top: 12, bottom: 12 })
             }
