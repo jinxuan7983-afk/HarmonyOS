@@ -108,7 +108,7 @@ struct SearchResult {
           .fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text('搜索结果')
-          .fontSize(28)
+          .fontSize(30)
           .fontWeight(600)
           .fontColor(AppColors.TEXT_PRIMARY)
           .margin({ left: 8 })

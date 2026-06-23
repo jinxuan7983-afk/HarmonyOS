@@ -62,7 +62,7 @@ struct ProfileEdit {
             router.back();
           })
         Text('编辑个人信息')
-          .fontSize(28).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode)).margin({ left: 8 }).layoutWeight(1)
+          .fontSize(30).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode)).margin({ left: 8 }).layoutWeight(1)
         Text('保存')
           .fontSize(26).fontColor(AppColors.BG_CARD)
           .padding({ left: 14, right: 14, top: 6, bottom: 6 })
@@ -144,7 +144,7 @@ struct ProfileEdit {
 
   @Builder PasswordPanel() {
     Column({ space: 12 }) {
-      Text('修改密码（本地模拟）').fontSize(24).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode)).alignSelf(ItemAlign.Start)
+      Text('修改密码（本地模拟）').fontSize(24).fontColor(ThemeUtil.titleColor(this.darkMode)).alignSelf(ItemAlign.Start)
       TextInput({ text: this.oldPwd, placeholder: '旧密码' })
         .type(InputType.Password).height(48).fontSize(26)
         .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8).padding({ left: 16, right: 16 })

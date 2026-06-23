@@ -243,6 +243,20 @@ export class DataManager {
     return result ? (result as object[]) : [];
   }
 
+  // ===== 九宫格排序 =====
+  static async saveGridOrder(titles: string[]): Promise<void> {
+    await DataManager.saveString(APP_PREFS, 'grid_order', JSON.stringify(titles));
+  }
+
+  static async loadGridOrder(): Promise<string[]> {
+    const jsonStr: string = await DataManager.loadString(APP_PREFS, 'grid_order', '[]');
+    try {
+      return JSON.parse(jsonStr);
+    } catch (_err) {
+      return [];
+    }
+  }
+
   /**
    * 清理所有缓存数据
    */

@@ -73,7 +73,7 @@ struct InfoDetail {
           .fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text('资讯详情')
-          .fontSize(28)
+          .fontSize(30)
           .fontWeight(600)
           .fontColor(AppColors.TEXT_PRIMARY)
           .margin({ left: 8 })
@@ -123,9 +123,9 @@ struct InfoDetail {
           Column({ space: 12 }) {
             Text(this.title)
               .fontSize(28)
-              .fontWeight(FontWeight.Bold)
+              .fontWeight(600)
               .fontColor(AppColors.TEXT_PRIMARY)
-              .lineHeight(38)
+              .lineHeight(28 * AppColors.LINE_HEIGHT_TITLE_M)
               .width('100%')
 
             Row({ space: 12 }) {

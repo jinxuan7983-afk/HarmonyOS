@@ -52,7 +52,7 @@ struct Settings {
           .width(24).height(24).fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text('设置')
-          .fontSize(28).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
+          .fontSize(30).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
           .margin({ left: 8 }).layoutWeight(1)
       }
       .width('100%').height(52).padding({ left: 16, right: 16 })
@@ -64,7 +64,7 @@ struct Settings {
           Column({ space: 0 }) {
             // 深色模式
             Row() {
-              Text('🌙').fontSize(24).fontColor(AppColors.PRIMARY).width(28).textAlign(TextAlign.Center)
+              SymbolGlyph($r('sys.symbol.moon')).fontSize(24).fontColor([AppColors.PRIMARY]).width(28)
               Text('深色模式').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
                 .layoutWeight(1).margin({ left: 10 })
               Toggle({ type: ToggleType.Switch, isOn: this.darkMode })
@@ -79,7 +79,7 @@ struct Settings {
 
             // 字体大小
             Row() {
-              Text('🔤').fontSize(24).fontColor(AppColors.PRIMARY).width(28).textAlign(TextAlign.Center)
+              Text('Aa').fontSize(24).fontColor(AppColors.PRIMARY).width(28).textAlign(TextAlign.Center)
               Text('字体大小').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
                 .layoutWeight(1).margin({ left: 10 })
               Row({ space: 16 }) {
@@ -108,11 +108,11 @@ struct Settings {
 
             // 通知设置
             Row() {
-              Text('🔔').fontSize(24).fontColor(AppColors.PRIMARY).width(28).textAlign(TextAlign.Center)
+              SymbolGlyph($r('sys.symbol.bell')).fontSize(24).fontColor([AppColors.PRIMARY]).width(28)
               Text('通知设置').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
                 .layoutWeight(1).margin({ left: 10 })
-              Text(this.showNoticeExpand ? '▲' : '▼')
-                .fontSize(24).fontColor(AppColors.PRIMARY)
+              SymbolGlyph(this.showNoticeExpand ? $r('sys.symbol.chevron_up') : $r('sys.symbol.chevron_down'))
+                .fontSize(24).fontColor([AppColors.PRIMARY])
             }
             .width('100%').height(48).padding({ left: 16, right: 16 })
             .onClick(() => { this.showNoticeExpand = !this.showNoticeExpand; })
@@ -164,7 +164,7 @@ struct Settings {
 
             // 清理缓存
             Row() {
-              Text('🗑').fontSize(24).fontColor(AppColors.PRIMARY).width(28).textAlign(TextAlign.Center)
+              SymbolGlyph($r('sys.symbol.trash')).fontSize(24).fontColor([AppColors.PRIMARY]).width(28)
               Text('清理缓存').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
                 .layoutWeight(1).margin({ left: 10 })
               Text(this.cacheSize).fontSize(24 * this.fontScale).fontColor(AppColors.TEXT_SECONDARY)
@@ -179,7 +179,7 @@ struct Settings {
 
             // 关于我们
             Row() {
-              Text('ℹ').fontSize(24).fontColor(AppColors.PRIMARY).width(28).textAlign(TextAlign.Center)
+              SymbolGlyph($r('sys.symbol.info_circle')).fontSize(24).fontColor([AppColors.PRIMARY]).width(28)
               Text('关于我们').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
                 .layoutWeight(1).margin({ left: 10 })
               Text('›').fontSize(26 * this.fontScale).fontColor(AppColors.PRIMARY)
@@ -218,9 +218,9 @@ struct Settings {
   CacheDialog() {
     Column() {
       Column({ space: 18 }) {
-        Text('🗑 清理缓存').fontSize(28).fontWeight(700).fontColor(AppColors.TEXT_PRIMARY)
+        Text('清理缓存').fontSize(28).fontWeight(600).fontColor(AppColors.TEXT_PRIMARY)
         Text('确定要清理本地缓存吗？\n将清除图片、音频及数据文件。').fontSize(24).fontColor(AppColors.TEXT_TERTIARY)
-          .lineHeight(36).textAlign(TextAlign.Center)
+          .lineHeight(24 * AppColors.LINE_HEIGHT_AUX).textAlign(TextAlign.Center)
         Text(`当前缓存：${this.cacheSize}`).fontSize(24).fontColor(AppColors.TEXT_SECONDARY)
         Row({ space: 12 }) {
           Button('取消').layoutWeight(1).height(48).fontSize(26).fontColor(AppColors.TEXT_SECONDARY)
@@ -249,13 +249,13 @@ struct Settings {
   AboutDialog() {
     Column() {
       Column({ space: 18 }) {
-        Text('ℹ 关于我们').fontSize(28).fontWeight(700).fontColor(AppColors.TEXT_PRIMARY)
-        Text('高校校园助手').fontSize(26).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY)
+        Text('关于我们').fontSize(28).fontWeight(600).fontColor(AppColors.TEXT_PRIMARY)
+        Text('高校校园助手').fontSize(26).fontColor(AppColors.TEXT_PRIMARY)
         Text('版本号：V1.0.0').fontSize(24).fontColor(AppColors.TEXT_TERTIARY)
         Text('开发团队：信息工程学院 软件工程').fontSize(24).fontColor(AppColors.TEXT_TERTIARY)
-          .lineHeight(36).textAlign(TextAlign.Center)
+          .lineHeight(24 * AppColors.LINE_HEIGHT_AUX).textAlign(TextAlign.Center)
         Text('基于 HarmonyOS NEXT 开发的校园综合服务应用，致力于为师生提供便捷的校园信息服务。')
-          .fontSize(24).fontColor(AppColors.TEXT_SECONDARY).lineHeight(34).textAlign(TextAlign.Center)
+          .fontSize(24).fontColor(AppColors.TEXT_SECONDARY).lineHeight(24 * AppColors.LINE_HEIGHT_AUX).textAlign(TextAlign.Center)
         Button('确定').width('100%').height(48).fontSize(26).fontColor(AppColors.BG_CARD)
           .backgroundColor(AppColors.PRIMARY).borderRadius(8)
           .onClick(() => { this.showAboutDialog = false; })

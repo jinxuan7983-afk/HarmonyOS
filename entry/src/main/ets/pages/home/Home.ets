@@ -39,6 +39,7 @@ struct Home {
   @State todoInput: string = '';
   @State scrollOffset: number = 0;
   @State iconScale: number = 1;
+  @State gridEditMode: boolean = false;
 
   @State todos: TodoItem[] = [
     { title: '完成移动开发实验报告', done: false },
@@ -60,6 +61,20 @@ struct Home {
       this.todos = savedTodos as TodoItem[];
     }
     AppStorage.setOrCreate('floatTodos', this.todos.filter((t: TodoItem) => !t.done));
+    // 恢复九宫格自定义排序
+    const savedOrder = await DataManager.loadGridOrder();
+    if (savedOrder.length > 0) {
+      const ordered: QuickAction[] = [];
+      for (const title of savedOrder) {
+        const found = this.actions.find((a: QuickAction) => a.title === title);
+        if (found) ordered.push(found);
+      }
+      // 追加 savedOrder 中没有的新项
+      for (const a of this.actions) {
+        if (ordered.indexOf(a) < 0) ordered.push(a);
+      }
+      this.actions = ordered;
+    }
   }
 
   aboutToDisappear(): void {
@@ -106,6 +121,15 @@ struct Home {
     if (tabIndex !== undefined) {
       this.currentTab = tabIndex;
     }
+  }
+
+  private moveItem(fromIdx: number, direction: number): void {
+    const toIdx = fromIdx + direction;
+    if (toIdx < 0 || toIdx >= this.actions.length) return;
+    const temp = this.actions[fromIdx];
+    this.actions[fromIdx] = this.actions[toIdx];
+    this.actions[toIdx] = temp;
+    this.actions = [...this.actions];
   }
 
   build() {
@@ -164,7 +188,7 @@ struct Home {
         .fontSize(28)
         .fontColor([index === this.currentTab ? AppColors.PRIMARY : AppColors.TEXT_SECONDARY])
       Text(label)
-        .fontSize(24)
+        .fontSize(22)
         .fontColor(index === this.currentTab ? AppColors.PRIMARY : AppColors.TEXT_SECONDARY)
         .fontWeight(index === this.currentTab ? FontWeight.Bold : FontWeight.Normal)
     }
@@ -224,8 +248,8 @@ struct Home {
   TopBar() {
     Row() {
       Text('校园助手')
-        .fontSize(28)
-        .lineHeight(28 * AppColors.LINE_HEIGHT_TITLE_L)
+        .fontSize(30)
+        .lineHeight(30 * AppColors.LINE_HEIGHT_TITLE_L)
         .fontWeight(600)
         .fontColor(this.scrollOffset > 50 ? AppColors.TEXT_PRIMARY : AppColors.PRIMARY)
 
@@ -234,33 +258,31 @@ struct Home {
       // 消息铃铛
       Stack() {
         SymbolGlyph($r('sys.symbol.bell'))
-          .fontSize(24)
+          .fontSize(22)
           .fontColor([AppColors.PRIMARY])
-          .width(44)
-          .height(44)
-          .backgroundColor(AppColors.PRIMARY_LIGHT)
-          .borderRadius(22)
         // 暖橙小圆点
         Circle()
-          .width(10)
-          .height(10)
+          .width(10).height(10)
           .fill(AppColors.WARNING)
-          .offset({ x: 13, y: -13 })
+          .position({ right: -2, top: -2 })
       }
+      .width(44).height(44).backgroundColor(AppColors.PRIMARY_LIGHT).borderRadius(22)
+      .alignContent(Alignment.Center)
       .onClick(() => router.pushUrl({ url: 'pages/info/MessageCenter' }))
     }
     .width('100%')
     .padding({ top: 12, bottom: 12, left: 4, right: 4 })
     .backgroundColor(this.scrollOffset > 50 ? ThemeUtil.cardBg(this.darkMode) : Color.Transparent)
+    .animation({ duration: 200, curve: Curve.EaseInOut })
   }
 
   // ===== 搜索栏 =====
   @Builder
   SearchBar() {
     Row({ space: 12 }) {
-      Text('🔍')
+      SymbolGlyph($r('sys.symbol.magnifyingglass'))
         .fontSize(24)
-        .fontColor(AppColors.PRIMARY)
+        .fontColor([AppColors.PRIMARY])
       TextInput({ text: this.searchText, placeholder: '搜索校园信息 / 课程 / 美食' })
         .fontSize(24)
         .backgroundColor(Color.Transparent)
@@ -271,9 +293,9 @@ struct Home {
             router.pushUrl({ url: 'pages/info/SearchResult', params: { keyword: this.searchText } });
           }
         })
-      Text('🎤')
+      SymbolGlyph($r('sys.symbol.mic'))
         .fontSize(24)
-        .fontColor(AppColors.PRIMARY)
+        .fontColor([AppColors.PRIMARY])
     }
     .height(48)
     .width('95%')
@@ -288,45 +310,71 @@ struct Home {
   // ===== 九宫格功能入口（3行4列） =====
   @Builder
   QuickGrid() {
-    Column({ space: 0 }) {
+    Column({ space: 12 }) {
+      // 标题栏
+      Row() {
+        Text('功能入口').fontSize(24).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode))
+        Blank()
+        Text(this.gridEditMode ? '完成' : '管理')
+          .fontSize(24).fontColor(AppColors.PRIMARY)
+          .onClick(() => {
+            this.gridEditMode = !this.gridEditMode;
+            if (!this.gridEditMode) {
+              DataManager.saveGridOrder(this.actions.map((a: QuickAction) => a.title));
+              this.getUIContext()?.getPromptAction()?.showToast({ message: '排序已保存' });
+            }
+          })
+      }
+      .width('100%')
+
       Grid() {
-        ForEach(this.actions, (item: QuickAction) => {
+        ForEach(this.actions, (item: QuickAction, idx: number) => {
           GridItem() {
-            Column({ space: 6 }) {
-              Stack() {
-                SymbolGlyph(item.icon)
-                  .fontSize(32 * this.fontScale)
-                  .fontColor([item.iconColor])
-              }
-              .width(64)
-              .height(64)
-              .backgroundColor(item.bgColor)
-              .borderRadius(32)
-              .alignContent(Alignment.Center)
+            Stack() {
+              Column({ space: 6 }) {
+                Stack() {
+                  SymbolGlyph(item.icon)
+                    .fontSize(32 * this.fontScale)
+                    .fontColor([item.iconColor])
+                }
+                .width(64).height(64)
+                .backgroundColor(item.bgColor)
+                .borderRadius(32)
+                .alignContent(Alignment.Center)
                 .scale({ x: this.iconScale, y: this.iconScale })
                 .animation({ duration: 150, curve: Curve.EaseOut })
-              Text(item.title)
-                .fontSize(24)
-                .fontColor(ThemeUtil.titleColor(this.darkMode))
-                .maxLines(1)
-                .textAlign(TextAlign.Center)
+                Text(item.title)
+                  .fontSize(24)
+                  .fontColor(ThemeUtil.titleColor(this.darkMode))
+                  .maxLines(1).textAlign(TextAlign.Center)
+              }
+              .width('100%').alignItems(HorizontalAlign.Center)
+
+              if (this.gridEditMode) {
+                Column() {
+                  Text('▲').fontSize(16).fontColor(AppColors.PRIMARY)
+                    .onClick(() => this.moveItem(idx, -1))
+                  Text('▼').fontSize(16).fontColor(AppColors.PRIMARY)
+                    .onClick(() => this.moveItem(idx, 1))
+                }
+                .width(28).height(48).justifyContent(FlexAlign.Center)
+                .backgroundColor('#CCFFFFFF').borderRadius(12)
+                .position({ x: 0, y: 8 })
+              }
             }
             .width('100%')
-            .alignItems(HorizontalAlign.Center)
             .onClick(() => {
-              // 点击放大微动画
+              if (this.gridEditMode) return;
               this.iconScale = 0.85;
               setTimeout(() => { this.iconScale = 1; }, 150);
-
               if (item.title === '更多功能') {
                 this.getUIContext()?.getPromptAction()?.showToast({ message: '更多功能开发中' });
               } else {
-                // 切换到对应Tab而非页面跳转
                 this.switchToTabByUrl(item.url);
               }
             })
           }
-         }, (item: QuickAction) => item.title)
+        }, (item: QuickAction) => item.title)
        }
        .columnsTemplate('1fr 1fr 1fr 1fr')
       .rowsGap(16)
@@ -367,7 +415,7 @@ struct Home {
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
           Text(item.time)
-            .fontSize(24)
+            .fontSize(22)
             .fontColor(ThemeUtil.subColor(this.darkMode))
           Text(item.summary)
             .fontSize(24)

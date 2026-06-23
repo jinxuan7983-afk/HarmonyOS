@@ -125,12 +125,6 @@ struct Index {
             .letterSpacing(2)
         }
         .alignItems(HorizontalAlign.Center)
-
-        Text('校园信息 · 学习助手 · 生活服务')
-          .fontSize(24)
-          .fontColor(AppColors.PRIMARY_LIGHT)
-          .opacity(this.fadeOpacity)
-          .margin({ top: 12 })
       }
       .alignItems(HorizontalAlign.Center)
 
@@ -145,18 +139,10 @@ struct Index {
           .height(36)
           .color(AppColors.BG_CARD)
 
-        Row({ space: 4 }) {
-          Text('高校校园助手 APP 开发团队')
-            .fontSize(24)
-            .fontColor(AppColors.PRIMARY_LIGHT)
-          Text('·')
-            .fontSize(24)
-            .fontColor(AppColors.PRIMARY_LIGHT)
-          Text('v1.0.0')
-            .fontSize(24)
-            .fontColor(AppColors.PRIMARY_LIGHT)
-        }
-        .opacity(this.fadeOpacity)
+        Text('高校校园助手 APP 开发团队')
+          .fontSize(22)
+          .fontColor(AppColors.PRIMARY_LIGHT)
+          .opacity(this.fadeOpacity)
 
         // 跳过按钮（点击直接跳转）
         Text('跳过启动页 ›')
@@ -170,7 +156,7 @@ struct Index {
           })
       }
       .alignItems(HorizontalAlign.Center)
-      .margin({ bottom: 36 })
+      .margin({ bottom: 30 })
     }
     .width('100%')
     .height('100%')

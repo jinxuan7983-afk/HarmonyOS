@@ -51,7 +51,7 @@ struct MusicList {
           .width(24).height(24).fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text('本地音乐')
-          .fontSize(28).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
+          .fontSize(30).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
           .margin({ left: 8 }).layoutWeight(1)
       }
       .width('100%').height(52).padding({ left: 16, right: 16 })

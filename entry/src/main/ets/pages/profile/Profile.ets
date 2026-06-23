@@ -108,15 +108,17 @@ export struct ProfileContent {
             // 导航栏标题（右侧设置图标）
             Row() {
               Text('我的')
-                .fontSize(28).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
-                .lineHeight(28 * AppColors.LINE_HEIGHT_TITLE_L)
+                .fontSize(30).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
+                .lineHeight(30 * AppColors.LINE_HEIGHT_TITLE_L)
                 .layoutWeight(1)
-              Text('⚙')
-                .fontSize(26)
-                .fontColor(AppColors.PRIMARY)
-                .width(40).height(40).textAlign(TextAlign.Center)
-                .backgroundColor(AppColors.PRIMARY_LIGHT).borderRadius(20)
-                .onClick(() => router.pushUrl({ url: 'pages/profile/Settings' }))
+              Stack() {
+                SymbolGlyph($r('sys.symbol.gearshape'))
+                  .fontSize(22)
+                  .fontColor([AppColors.PRIMARY])
+              }
+              .width(40).height(40).backgroundColor(AppColors.PRIMARY_LIGHT).borderRadius(20)
+              .alignContent(Alignment.Center)
+              .onClick(() => router.pushUrl({ url: 'pages/profile/Settings' }))
             }
             .width('100%')
 
@@ -174,25 +176,28 @@ export struct ProfileContent {
       }
     }
     .width('100%').height('100%')
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 
   // ===== 个人信息卡片 =====
   @Builder ProfileCard() {
     Row({ space: 16 }) {
       // 头像 80px圆形 - 点击跳转编辑页
-      Stack() {
+      Stack({ alignContent: Alignment.BottomStart }) {
         Image(this.avatarUri || $r('app.media.logo'))
           .width(80).height(80).borderRadius(40).border({ width: 3, color: AppColors.PRIMARY })
-        Text('📷').fontSize(24 * this.fontScale)
-          .width(80).height(80).borderRadius(40).backgroundColor('#33000000')
-          .textAlign(TextAlign.Center)
+        Text('📷').fontSize(16)
+          .width(32).height(32).textAlign(TextAlign.Center)
+          .backgroundColor('#99333333').borderRadius(16)
+          .margin({ left: 23, bottom: 23 })
       }
+      .width(80).height(80)
       .onClick(() => this.gotoProfileEdit())
 
       Column({ space: 4 }) {
         Text(this.nickname).fontSize(28 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode))
-        Text(`${this.studentId} · ${this.college}`).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
-        Text(this.major).fontSize(24 * this.fontScale).fontColor(AppColors.PRIMARY)
+        Text(this.studentId).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+        Text(`${this.college} · ${this.major}`).fontSize(22 * this.fontScale).fontColor(AppColors.PRIMARY)
       }
       .alignItems(HorizontalAlign.Start).layoutWeight(1)
 
@@ -255,7 +260,7 @@ export struct ProfileContent {
         Row() {
           Text(this.getCollectionIcon(item.category)).fontSize(26 * this.fontScale)
           Column({ space: 4 }) {
-            Text(item.title).fontSize(26 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode)).maxLines(1).lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
+            Text(item.title).fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode)).maxLines(1).lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
             Text(item.detail).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
           }
           .alignItems(HorizontalAlign.Start).layoutWeight(1).margin({ left: 10 })
@@ -398,24 +403,84 @@ export struct ProfileContent {
           }
         }
       }
-      .width('100%').height(260).scrollBar(BarState.Off)
+      .width('100%')
     }
   }
 
-  // ===== 设置面板（入口按钮，跳转独立设置页） =====
+  // ===== 设置模块（内联深色模式Toggle+字体大小，符合规范2.8） =====
   @Builder SettingsPanel() {
     Column({ space: 0 }) {
+      // 深色模式 Toggle
       Row() {
-        Text('⚙').fontSize(24).fontColor(AppColors.PRIMARY).width(28).textAlign(TextAlign.Center)
-        Text('打开设置').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode)).layoutWeight(1).margin({ left: 10 })
+        SymbolGlyph($r('sys.symbol.moon')).fontSize(24).fontColor([AppColors.PRIMARY]).width(28)
+        Text('深色模式').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
+          .layoutWeight(1).margin({ left: 10 })
+        Toggle({ type: ToggleType.Switch, isOn: this.darkMode })
+          .selectedColor(AppColors.PRIMARY)
+          .onChange((v: boolean) => {
+            this.darkMode = v;
+            DataManager.saveSettingBoolean('darkMode', v);
+          })
+      }
+      .width('100%').height(48).padding({ left: 16, right: 16 })
+      Divider().color(AppColors.DIVIDER).strokeWidth(1).width('94%')
+
+      // 字体大小 小/中/大 单选
+      Row() {
+        Text('Aa').fontSize(24).fontColor(AppColors.PRIMARY).width(28).textAlign(TextAlign.Center)
+        Text('字体大小').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
+          .layoutWeight(1).margin({ left: 10 })
+        Row({ space: 16 }) {
+          ForEach(['小', '中', '大'], (label: string, index: number) => {
+            Row({ space: 4 }) {
+              Radio({ value: `radio_${index}`, group: 'fontGroup' })
+                .checked(this.selectedFont === ['small', 'normal', 'large'][index])
+                .radioStyle({ checkedBackgroundColor: AppColors.PRIMARY })
+                .width(22).height(22)
+                .onChange((isChecked: boolean) => {
+                  if (isChecked) {
+                    const vals: string[] = ['small', 'normal', 'large'];
+                    const scales: number[] = [0.85, 1.0, 1.2];
+                    this.selectedFont = vals[index];
+                    this.fontScale = scales[index];
+                    DataManager.saveSettingString('fontSize', vals[index]);
+                  }
+                })
+              Text(label).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+            }
+          }, (item: string, index: number) => item)
+        }
+      }
+      .width('100%').height(48).padding({ left: 16, right: 16 })
+      Divider().color(AppColors.DIVIDER).strokeWidth(1).width('94%')
+
+      // 通知设置 - 跳转设置页
+      Row() {
+        SymbolGlyph($r('sys.symbol.bell')).fontSize(24).fontColor([AppColors.PRIMARY]).width(28)
+        Text('通知设置').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
+          .layoutWeight(1).margin({ left: 10 })
         Text('›').fontSize(26 * this.fontScale).fontColor(AppColors.PRIMARY)
       }
-      .width('100%').height(56).padding({ left: 16, right: 16 })
-      .onClick(() => {
-        router.pushUrl({ url: 'pages/profile/Settings' });
-      })
+      .width('100%').height(48).padding({ left: 16, right: 16 })
+      .onClick(() => router.pushUrl({ url: 'pages/profile/Settings' }))
+      Divider().color(AppColors.DIVIDER).strokeWidth(1).width('94%')
+
+      // 清理缓存
+      Row() {
+        SymbolGlyph($r('sys.symbol.trash')).fontSize(24).fontColor([AppColors.PRIMARY]).width(28)
+        Text('清理缓存').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
+          .layoutWeight(1).margin({ left: 10 })
+        Text(this.cacheSize).fontSize(24 * this.fontScale).fontColor(AppColors.TEXT_SECONDARY)
+        Text('清理').fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD)
+          .padding({ left: 14, right: 14, top: 6, bottom: 6 })
+          .backgroundColor(AppColors.WARNING).borderRadius(8)
+          .margin({ left: 10 })
+          .onClick(() => { this.showCacheDialog = true; })
+      }
+      .width('100%').height(48).padding({ left: 16, right: 16 })
     }
     .width('100%').backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+    .padding({ top: 6, bottom: 6 })
   }
 
   // ===== 缓存清理确认弹窗 =====
@@ -423,8 +488,8 @@ export struct ProfileContent {
   CacheDialog() {
     Column() {
       Column({ space: 18 }) {
-        Text('🗑 清理缓存').fontSize(28).fontWeight(700).fontColor(AppColors.TEXT_PRIMARY)
-        Text('确定要清理本地缓存吗？\n将清除图片、音频及数据文件。').fontSize(24).fontColor(AppColors.TEXT_TERTIARY).lineHeight(36).textAlign(TextAlign.Center)
+        Text('清理缓存').fontSize(28).fontWeight(600).fontColor(AppColors.TEXT_PRIMARY)
+        Text('确定要清理本地缓存吗？\n将清除图片、音频及数据文件。').fontSize(24).fontColor(AppColors.TEXT_TERTIARY).lineHeight(24 * AppColors.LINE_HEIGHT_AUX).textAlign(TextAlign.Center)
         Text(`当前缓存：${this.cacheSize}`).fontSize(24).fontColor(AppColors.TEXT_SECONDARY)
         Row({ space: 12 }) {
           Button('取消').layoutWeight(1).height(48).fontSize(26).fontColor(AppColors.TEXT_SECONDARY).backgroundColor(AppColors.DIVIDER).borderRadius(8)
@@ -481,8 +546,8 @@ export struct ProfileContent {
     Column({ space: 8 }) {
       Text('版本号 V1.0.0（HarmonyOS NEXT）')
         .fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
-      Text('信息工程学院 软件工程 开发团队')
-        .fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+      Text('XX学校 XX专业 开发团队')
+        .fontSize(22 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
       Text('©2026 高校校园助手 保留所有权利')
         .fontSize(20 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
     }

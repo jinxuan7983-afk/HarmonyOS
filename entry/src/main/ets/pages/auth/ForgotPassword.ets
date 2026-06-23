@@ -37,7 +37,7 @@ struct ForgotPassword {
           .width(24).height(24).fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text('找回密码')
-          .fontSize(28).fontWeight(600).fontColor(AppColors.TEXT_PRIMARY)
+          .fontSize(30).fontWeight(600).fontColor(AppColors.TEXT_PRIMARY)
           .margin({ left: 8 }).layoutWeight(1)
       }
       .width('100%').height(52).padding({ left: 16, right: 16 }).backgroundColor(AppColors.BG_CARD)
@@ -46,7 +46,7 @@ struct ForgotPassword {
         Column({ space: 24 }) {
           // 说明文字
           Text('请输入学号并通过验证码验证后重设密码')
-            .fontSize(24).fontColor(AppColors.TEXT_SECONDARY).lineHeight(36)
+            .fontSize(24).fontColor(AppColors.TEXT_SECONDARY).lineHeight(24 * AppColors.LINE_HEIGHT_AUX)
             .width('90%').margin({ top: 24 })
 
           // 学号

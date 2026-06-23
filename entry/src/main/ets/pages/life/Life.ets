@@ -66,6 +66,7 @@ export struct LifeContent {
   @State calcOperator: string = '';
   @State calcPrev: number = 0;
   @State calcJustEvaluated: boolean = false;
+  @State calcWaitingForOperand: boolean = false;
 
   // 倒计时
   @State showCountdown: boolean = false;
@@ -128,7 +129,7 @@ export struct LifeContent {
     Column() {
       // 导航栏（无返回箭头，白色背景）
       Row() {
-        Text('生活服务').fontSize(28).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode)).lineHeight(28 * AppColors.LINE_HEIGHT_TITLE_L)
+        Text('生活服务').fontSize(30).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode)).lineHeight(30 * AppColors.LINE_HEIGHT_TITLE_L)
       }
       .width('100%').padding({ left: 20, right: 20, top: 14, bottom: 10 }).backgroundColor(ThemeUtil.cardBg(this.darkMode))
 
@@ -161,6 +162,7 @@ export struct LifeContent {
       .refreshOffset(64).layoutWeight(1)
     }
     .width('100%').height('100%')
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 
   // ===== 2行×2列分类入口 =====
@@ -179,7 +181,7 @@ export struct LifeContent {
       Text(icon).fontSize(48)
       Text(label).fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
     }
-    .width('100%').height(120)
+    .width('100%').aspectRatio(1.5)
     .justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
     .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
     .border({ width: this.tab === label ? 2 : 1, color: this.tab === label ? AppColors.PRIMARY : AppColors.BORDER })
@@ -202,7 +204,9 @@ export struct LifeContent {
 
       // 搜索栏
       Row({ space: 12 }) {
-        Text('🔍').fontSize(24).fontColor(AppColors.PRIMARY)
+        SymbolGlyph($r('sys.symbol.magnifyingglass'))
+          .fontSize(24)
+          .fontColor([AppColors.PRIMARY])
         TextInput({ text: this.searchText, placeholder: '搜索物品/地点/描述' })
           .fontSize(24).backgroundColor(Color.Transparent).layoutWeight(1)
           .onChange((v: string) => this.searchText = v)
@@ -245,13 +249,13 @@ export struct LifeContent {
                  .width(64).height(64).objectFit(ImageFit.Cover).borderRadius(8).backgroundColor(AppColors.BG_PAGE)
                Column({ space: 4 }) {
                  Row() {
-                   Text(item.title).fontSize(26 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode)).lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
+                   Text(item.title).fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode)).lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
                    Text(item.type).fontSize(24)
                      .fontColor(item.type === '失物' ? AppColors.WARNING : AppColors.SUCCESS)
                      .padding({ left: 8, right: 8, top: 2, bottom: 2 })
                      .backgroundColor(item.type === '失物' ? AppColors.WARNING_LIGHT : AppColors.SUCCESS_LIGHT).borderRadius(4).margin({ left: 8 })
                  }
-                 Text(`${item.place} · ${item.time}`).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                 Text(`${item.time} · ${item.place}`).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
                  Text(`📞 ${item.phone}`).fontSize(24).fontColor(AppColors.PRIMARY)
                }
                .alignItems(HorizontalAlign.Start).layoutWeight(1)
@@ -270,7 +274,7 @@ export struct LifeContent {
            })
          }, (item: LostItem) => item.title + item.time)
       }
-      .width('100%').height(420).scrollBar(BarState.Off)
+      .width('100%')
     }
   }
 
@@ -333,7 +337,7 @@ export struct LifeContent {
 
               Row() {
                 Column({ space: 4 }) {
-                  Text(food.name).fontSize(26 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode)).lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
+                  Text(food.name).fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode)).lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
                   Text(`${food.place} · ${food.feature}`).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
                 }
                 .alignItems(HorizontalAlign.Start).layoutWeight(1)
@@ -355,7 +359,7 @@ export struct LifeContent {
           .margin({ bottom: 12 })
          }, (food: FoodItem) => food.name)
       }
-      .width('100%').height(480).scrollBar(BarState.Off)
+      .width('100%')
     }
   }
 
@@ -439,9 +443,9 @@ export struct LifeContent {
 
         // 控制按钮（40px鸿蒙蓝间距32px）
         Row({ space: 32 }) {
-          Text('⏮').fontSize(32).fontColor(AppColors.PRIMARY).onClick(() => this.prevSong())
-          Text(this.playing ? '⏸' : '▶️').fontSize(32).fontColor(AppColors.PRIMARY).onClick(() => this.togglePlay())
-          Text('⏭').fontSize(32).fontColor(AppColors.PRIMARY).onClick(() => this.nextSong())
+          Text('⏮').fontSize(40).fontColor(AppColors.PRIMARY).onClick(() => this.prevSong())
+          Text(this.playing ? '⏸' : '▶️').fontSize(40).fontColor(AppColors.PRIMARY).onClick(() => this.togglePlay())
+          Text('⏭').fontSize(40).fontColor(AppColors.PRIMARY).onClick(() => this.nextSong())
         }
 
         // 本地音乐按钮
@@ -698,7 +702,7 @@ export struct LifeContent {
             Text(this.getToolIcon(name)).fontSize(36)
             Text(name).fontSize(24 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
           }
-          .width('100%').height(100).justifyContent(FlexAlign.Center)
+          .width('100%').aspectRatio(1).justifyContent(FlexAlign.Center)
           .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
           .onClick(() => {
             if (name === '计算器') {
@@ -707,6 +711,7 @@ export struct LifeContent {
               this.calcOperator = '';
               this.calcPrev = 0;
               this.calcJustEvaluated = false;
+              this.calcWaitingForOperand = false;
             } else if (name === '倒计时') {
               this.showCountdown = true;
             } else {
@@ -807,6 +812,7 @@ export struct LifeContent {
       this.calcOperator = '';
       this.calcPrev = 0;
       this.calcJustEvaluated = false;
+      this.calcWaitingForOperand = false;
       return;
     }
     if (btn === '⌫') {
@@ -818,6 +824,11 @@ export struct LifeContent {
       return;
     }
     if (this.isCalcOperator(btn)) {
+      if (this.calcWaitingForOperand) {
+        this.calcOperator = btn;
+        this.calcDisplay = this.formatCalcResult(this.calcPrev) + ' ' + btn;
+        return;
+      }
       const current = parseFloat(this.calcDisplay);
       if (this.calcOperator !== '' && !this.calcJustEvaluated) {
         const result = this.calcCompute(this.calcPrev, current, this.calcOperator);
@@ -828,10 +839,18 @@ export struct LifeContent {
       }
       this.calcOperator = btn;
       this.calcJustEvaluated = false;
+      this.calcWaitingForOperand = true;
       this.calcDisplay = this.formatCalcResult(this.calcPrev) + ' ' + btn;
       return;
     }
     if (btn === '=') {
+      if (this.calcWaitingForOperand) {
+        this.calcDisplay = this.formatCalcResult(this.calcPrev);
+        this.calcOperator = '';
+        this.calcWaitingForOperand = false;
+        this.calcJustEvaluated = true;
+        return;
+      }
       const current = parseFloat(this.calcDisplay);
       if (this.calcOperator !== '') {
         const result = this.calcCompute(this.calcPrev, current, this.calcOperator);
@@ -848,6 +867,9 @@ export struct LifeContent {
       this.calcJustEvaluated = false;
       this.calcPrev = 0;
       this.calcOperator = '';
+    } else if (this.calcWaitingForOperand) {
+      this.calcDisplay = btn === '.' ? '0.' : btn;
+      this.calcWaitingForOperand = false;
     } else {
       if (btn === '.' && this.calcDisplay.indexOf('.') >= 0) return;
       if (this.calcDisplay === '0' && btn !== '.') {
@@ -921,7 +943,7 @@ export struct LifeContent {
           .fontColor(this.countdownRemaining <= 10 && this.countdownRunning ? AppColors.WARNING : ThemeUtil.titleColor(this.darkMode))
           .textAlign(TextAlign.Center)
       }
-      .width('100%').height(120).justifyContent(FlexAlign.Center)
+      .width('100%').aspectRatio(1.5).justifyContent(FlexAlign.Center)
       .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
 
       // 控制按钮

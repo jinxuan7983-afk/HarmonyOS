@@ -1,6 +1,7 @@
 import router from '@ohos.router';
 import { notificationManager } from '@kit.NotificationKit';
 import { wantAgent } from '@kit.AbilityKit';
+import { fileIo } from '@kit.CoreFileKit';
 import { AppColors } from '../../common/constants/AppColors';
 import { ThemeUtil } from '../../common/utils/ThemeUtil';
 import { CourseItem, GradeItem, BookItem, MaterialItem } from '../../common/constants/DataModels';
@@ -125,7 +126,7 @@ export struct StudyContent {
     Column() {
       // 导航栏（无返回箭头，白色背景）
       Row() {
-        Text('学习助手').fontSize(28).lineHeight(28 * AppColors.LINE_HEIGHT_TITLE_L).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
+        Text('学习助手').fontSize(30).lineHeight(30 * AppColors.LINE_HEIGHT_TITLE_L).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
       }
       .width('100%').padding({ left: 20, right: 20, top: 14, bottom: 10 }).backgroundColor(ThemeUtil.cardBg(this.darkMode))
 
@@ -150,6 +151,7 @@ export struct StudyContent {
       .refreshOffset(64).layoutWeight(1)
     }
     .width('100%').height('100%')
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 
   // ===== 标签栏（设计规范：4标签平分宽度+2px下划线） =====
@@ -158,7 +160,7 @@ export struct StudyContent {
       ForEach(this.tabs, (item: string) => {
         Column({ space: 8 }) {
           Text(item)
-            .fontSize(26 * this.fontScale)
+            .fontSize(28)
             .fontWeight(this.tab === item ? 600 : 400)
             .fontColor(this.tab === item ? AppColors.PRIMARY : ThemeUtil.subColor(this.darkMode))
           if (this.tab === item) {
@@ -178,15 +180,19 @@ export struct StudyContent {
     Column({ space: 14 }) {
       // 周次选择
       Row() {
-        SymbolGlyph($r('sys.symbol.chevron_left'))
-          .fontSize(24).fontColor([AppColors.PRIMARY]).padding(8)
+        Text('上一周')
+          .fontSize(24)
+          .fontColor(AppColors.PRIMARY)
+          .padding(8)
           .onClick(() => { if (this.weekIndex > 1) this.weekIndex -= 1; })
         Blank()
         Text(`2026年 第 ${this.weekIndex} 周`)
-          .fontSize(26 * this.fontScale).fontWeight(FontWeight.Bold).fontColor(ThemeUtil.titleColor(this.darkMode))
+          .fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.PRIMARY)
         Blank()
-        SymbolGlyph($r('sys.symbol.chevron_right'))
-          .fontSize(24).fontColor([AppColors.PRIMARY]).padding(8)
+        Text('下一周')
+          .fontSize(24)
+          .fontColor(AppColors.PRIMARY)
+          .padding(8)
           .onClick(() => { if (this.weekIndex < 20) this.weekIndex += 1; })
       }
 
@@ -238,13 +244,20 @@ export struct StudyContent {
           }
         })
       }
-      .width('100%').height(400).scrollBar(BarState.Off)
+      .width('100%')
 
-      // 编辑按钮
-      Button('编辑课程表')
-        .width('100%').height(48).fontSize(26 * this.fontScale).fontColor(AppColors.BG_CARD)
-        .backgroundColor(AppColors.PRIMARY).borderRadius(8)
-        .onClick(() => router.pushUrl({ url: 'pages/study/CourseEdit', params: { mode: 'add' } }))
+      // 操作按钮组
+      Row({ space: 12 }) {
+        Button('编辑课程表')
+          .layoutWeight(1).height(36).fontSize(24).fontColor(AppColors.BG_CARD)
+          .backgroundColor(AppColors.PRIMARY).borderRadius(8)
+          .onClick(() => router.pushUrl({ url: 'pages/study/CourseEdit', params: { mode: 'add' } }))
+        Button('导出课表')
+          .layoutWeight(1).height(36).fontSize(24).fontColor(AppColors.PRIMARY)
+          .backgroundColor(AppColors.PRIMARY_LIGHT).borderRadius(8)
+          .onClick(() => this.exportCourses())
+      }
+      .width('100%')
     }
     .gesture(
       PanGesture({ direction: PanDirection.Horizontal, distance: 30 })
@@ -391,7 +404,7 @@ export struct StudyContent {
              .margin({ bottom: 10 })
            }, (grade: GradeItem) => grade.name + grade.examTime)
          }
-         .width('100%').height(360).scrollBar(BarState.Off)
+         .width('100%')
       }
     }
   }
@@ -410,7 +423,9 @@ export struct StudyContent {
   @Builder LibrarySearch() {
     Column({ space: 14 }) {
       Row({ space: 10 }) {
-        Text('🔍').fontSize(24).fontColor(AppColors.PRIMARY)
+        SymbolGlyph($r('sys.symbol.magnifyingglass'))
+          .fontSize(24)
+          .fontColor([AppColors.PRIMARY])
         TextInput({ text: this.searchText, placeholder: '搜索图书名称/作者/ISBN' })
           .fontSize(24).backgroundColor(Color.Transparent).layoutWeight(1)
           .onChange((v: string) => this.searchText = v)
@@ -472,11 +487,24 @@ export struct StudyContent {
                 })
             }
             .width('100%').padding(16).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+            .onClick(() => {
+              router.pushUrl({
+                url: 'pages/study/BookDetail',
+                params: {
+                  name: book.name,
+                  author: book.author,
+                  isbn: book.isbn,
+                  location: book.location,
+                  count: book.count,
+                  status: book.status
+                }
+              });
+            })
           }
            .margin({ bottom: 10 })
          }, (book: BookItem) => book.name + book.isbn)
        }
-       .width('100%').height(380).scrollBar(BarState.Off)
+       .width('100%')
     }
   }
 
@@ -513,7 +541,7 @@ export struct StudyContent {
               Text(m.icon).fontSize(40)
               Text(m.name).fontSize(24 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
             }
-            .width('100%').height(100).justifyContent(FlexAlign.Center)
+            .width('100%').aspectRatio(1).justifyContent(FlexAlign.Center)
             .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
             .onClick(() => this.getUIContext()?.getPromptAction()?.showToast({ message: `${m.name}：查看详情` }))
           }
@@ -553,6 +581,48 @@ export struct StudyContent {
     } catch (e) {
       console.error('publishCourseNotification error: ' + JSON.stringify(e));
       this.getUIContext()?.getPromptAction()?.showToast({ message: '通知权限未开启，请在设置中开启' });
+    }
+  }
+
+  // 【3.4.1 课程表导出】简化为本地文件保存
+  private async exportCourses(): Promise<void> {
+    try {
+      // 生成纯文本格式课程表
+      let content = '===== 高校校园助手 - 课程表 =====\n\n';
+      for (const day of this.days) {
+        const dayCourses = this.courses.filter((c: CourseItem) => c.day === day);
+        content += `【${day}】\n`;
+        if (dayCourses.length === 0) {
+          content += '  无课程\n';
+        } else {
+          for (const c of dayCourses) {
+            content += `  ${c.time}  ${c.name}  ${c.place}  ${c.teacher}\n`;
+          }
+        }
+        content += '\n';
+      }
+      content += `导出时间：${new Date().toLocaleString()}\n`;
+
+      // 保存到应用沙箱 filesDir
+      const context = this.getUIContext().getHostContext();
+      if (!context) {
+        this.getUIContext()?.getPromptAction()?.showToast({ message: '导出失败：无法获取上下文' });
+        return;
+      }
+      const filesDir = context.filesDir;
+      const fileName = `课程表_${new Date().getFullYear()}.txt`;
+      const filePath = `${filesDir}/${fileName}`;
+
+      const file = fileIo.openSync(filePath, fileIo.OpenMode.CREATE | fileIo.OpenMode.WRITE_ONLY);
+      fileIo.writeSync(file.fd, content);
+      fileIo.closeSync(file);
+
+      this.getUIContext()?.getPromptAction()?.showToast({
+        message: `课程表已导出：${filePath}`
+      });
+    } catch (e) {
+      console.error('exportCourses error: ' + JSON.stringify(e));
+      this.getUIContext()?.getPromptAction()?.showToast({ message: '导出失败，请重试' });
     }
   }
 }

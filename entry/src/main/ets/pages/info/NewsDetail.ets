@@ -87,7 +87,7 @@ struct NewsDetail {
           .fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text('公告详情')
-          .fontSize(28)
+          .fontSize(30)
           .fontWeight(600)
           .fontColor(AppColors.TEXT_PRIMARY)
           .margin({ left: 8 })
@@ -117,7 +117,7 @@ struct NewsDetail {
               .fontSize(28)
               .fontWeight(600)
               .fontColor(AppColors.TEXT_PRIMARY)
-              .lineHeight(32)
+              .lineHeight(28 * AppColors.LINE_HEIGHT_TITLE_M)
               .width('100%')
 
             Row({ space: 12 }) {

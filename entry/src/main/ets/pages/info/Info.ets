@@ -65,8 +65,8 @@ export struct InfoContent {
       // 导航栏（无返回箭头，白色背景）
       Row() {
         Text('校园信息')
-          .fontSize(28)
-          .lineHeight(28 * AppColors.LINE_HEIGHT_TITLE_L)
+          .fontSize(30)
+          .lineHeight(30 * AppColors.LINE_HEIGHT_TITLE_L)
           .fontWeight(600)
           .fontColor(ThemeUtil.titleColor(this.darkMode))
       }
@@ -88,7 +88,9 @@ export struct InfoContent {
               }
               // 搜索栏
               Row({ space: 12 }) {
-                Text('🔍').fontSize(24).fontColor(AppColors.PRIMARY)
+                SymbolGlyph($r('sys.symbol.magnifyingglass'))
+                  .fontSize(24)
+                  .fontColor([AppColors.PRIMARY])
                 TextInput({ text: this.searchText, placeholder: `搜索${this.category}...` })
                   .fontSize(24).backgroundColor(Color.Transparent).layoutWeight(1)
                   .onChange((v: string) => this.searchText = v)
@@ -120,6 +122,7 @@ export struct InfoContent {
     }
     .width('100%')
     .height('100%')
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 
   // ===== 主分类标签（设计规范：36px高圆角按钮） =====
@@ -214,7 +217,7 @@ export struct InfoContent {
                   .backgroundColor(AppColors.PRIMARY_LIGHT)
                   .borderRadius(4)
                 Text(item.time)
-                  .fontSize(24 * this.fontScale)
+                  .fontSize(22)
                   .fontColor(ThemeUtil.subColor(this.darkMode))
               }
             }
@@ -258,9 +261,6 @@ export struct InfoContent {
       }
     }
     .width('100%')
-    .height(420)
-    .scrollBar(BarState.Off)
-    .onReachEnd(() => this.loadMore())
   }
 
   private getCategoryIcon(category: string): string {
@@ -344,7 +344,7 @@ export struct InfoContent {
 
         Stack() {
           Image($r('app.media.background'))
-            .width('100%').height(200)
+            .width('100%').aspectRatio(2)
             .objectFit(ImageFit.Cover).opacity(0.3)
             .scale({ x: this.mapScale, y: this.mapScale })
             .offset({ x: this.mapOffsetX, y: this.mapOffsetY })
@@ -368,7 +368,7 @@ export struct InfoContent {
              .onClick(() => { this.selectedBuilding = building; })
            }, (building: Building) => building.name)
         }
-        .width('100%').height(200)
+        .width('100%').aspectRatio(2)
         .backgroundColor(AppColors.BG_PAGE)
         .borderRadius({ bottomLeft: 8, bottomRight: 8 })
         // 双指缩放 + 单指拖动
@@ -396,7 +396,9 @@ export struct InfoContent {
 
       // 搜索框
       Row({ space: 12 }) {
-        Text('🔍').fontSize(24).fontColor(AppColors.PRIMARY)
+        SymbolGlyph($r('sys.symbol.magnifyingglass'))
+          .fontSize(24)
+          .fontColor([AppColors.PRIMARY])
         TextInput({ text: this.mapSearchText, placeholder: '搜索教学楼/图书馆/食堂...' })
           .fontSize(24).backgroundColor(Color.Transparent).layoutWeight(1)
           .onChange((value: string) => this.mapSearchText = value)
@@ -436,7 +438,21 @@ export struct InfoContent {
             Button('查看详情')
               .fontSize(24).fontColor(AppColors.PRIMARY).backgroundColor(AppColors.PRIMARY_LIGHT)
               .layoutWeight(1).borderRadius(8).height(40)
-              .onClick(() => this.getUIContext()?.getPromptAction()?.showToast({ message: '详情页开发中' }))
+              .onClick(() => {
+                if (this.selectedBuilding) {
+                  router.pushUrl({
+                    url: 'pages/info/MapDetail',
+                    params: {
+                      name: this.selectedBuilding.name,
+                      icon: this.selectedBuilding.icon,
+                      desc: this.selectedBuilding.desc,
+                      position: this.selectedBuilding.position,
+                      x: this.selectedBuilding.x,
+                      y: this.selectedBuilding.y
+                    }
+                  });
+                }
+              })
           }
         }
         .padding(16).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)

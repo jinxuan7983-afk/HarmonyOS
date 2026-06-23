@@ -53,7 +53,7 @@ struct LostPublish {
           .width(24).height(24).fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text('发布信息')
-          .fontSize(28).fontWeight(600).fontColor(AppColors.TEXT_PRIMARY)
+          .fontSize(30).fontWeight(600).fontColor(AppColors.TEXT_PRIMARY)
           .margin({ left: 8 }).layoutWeight(1)
       }
       .width('100%').height(52).padding({ left: 16, right: 16 }).backgroundColor(AppColors.BG_CARD)
@@ -79,7 +79,7 @@ struct LostPublish {
 
           // 【3.5.1 分类】单选胶囊
           Column({ space: 8 }) {
-            Text('物品分类').fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
+            Text('物品分类').fontSize(24).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
             Scroll() {
               Row({ space: 8 }) {
                 ForEach(this.categories, (cat: string) => {
@@ -98,7 +98,7 @@ struct LostPublish {
 
           // 丢失/拾取地点 - 常用地点快速选择
           Column({ space: 8 }) {
-            Text('地点').fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
+            Text('地点').fontSize(24).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
             Row({ space: 8 }) {
               ForEach(this.places.slice(0, 4), (p: string) => {
                 Text(p)
@@ -120,7 +120,7 @@ struct LostPublish {
 
           // 描述
           Column({ space: 6 }) {
-            Text('物品描述').fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
+            Text('物品描述').fontSize(24).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
             TextArea({ text: this.desc, placeholder: '请详细描述物品特征（颜色、品牌、特殊标记等）' })
               .height(100).fontSize(26).backgroundColor(AppColors.BG_CARD).borderRadius(8).padding(12)
               .onChange((v: string) => this.desc = v)
@@ -131,7 +131,7 @@ struct LostPublish {
 
           // 【3.5.1 图片上传】本地图片读取
           Column({ space: 8 }) {
-            Text('物品图片').fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
+            Text('物品图片').fontSize(24).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
             Row({ space: 8 }) {
               // 已选图片缩略图
               ForEach(this.imageUris, (uri: string) => {
@@ -204,7 +204,7 @@ struct LostPublish {
   @Builder
   InputField(label: string, placeholder: string, value: string, callback: (v: string) => void) {
     Column({ space: 6 }) {
-      Text(label).fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
+      Text(label).fontSize(24).fontColor(AppColors.TEXT_PRIMARY).alignSelf(ItemAlign.Start)
       TextInput({ text: value, placeholder: placeholder })
         .height(48).fontSize(24).backgroundColor(AppColors.BG_CARD).borderRadius(8).padding({ left: 12, right: 12 })
         .onChange((v: string) => callback(v))

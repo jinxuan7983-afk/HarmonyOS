@@ -33,7 +33,7 @@ struct MessageCenter {
           .width(24).height(24).fillColor(AppColors.PRIMARY)
           .onClick(() => router.back())
         Text('消息中心')
-          .fontSize(28).fontWeight(600).fontColor(AppColors.TEXT_PRIMARY).margin({ left: 8 }).layoutWeight(1)
+          .fontSize(30).fontWeight(600).fontColor(AppColors.TEXT_PRIMARY).margin({ left: 8 }).layoutWeight(1)
         Text('全部已读')
           .fontSize(24).fontColor(AppColors.PRIMARY)
           .onClick(() => {

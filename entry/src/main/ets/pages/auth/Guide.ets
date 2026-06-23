@@ -146,7 +146,7 @@ struct Guide {
           })
         }
 
-        // 按钮区域
+        // 按钮区域 - 规范2.2：仅第三页显示「立即进入」按钮
         if (this.currentIndex === 2) {
           Button('立即进入')
             .width('80%')
@@ -158,18 +158,6 @@ struct Guide {
             .shadow({ radius: 12, color: AppColors.PRIMARY_DARK, offsetX: 0, offsetY: 4 })
             .onClick(() => {
               this.navigateToLogin();
-            })
-        } else {
-          Button('下一步')
-            .width('70%')
-            .height(48)
-            .fontSize(26)
-            .fontColor(AppColors.PRIMARY)
-            .backgroundColor(AppColors.PRIMARY_LIGHT)
-            .borderRadius(8)
-            .onClick(() => {
-              this.currentIndex += 1;
-              this.swiperController.changeIndex(this.currentIndex);
             })
         }
 

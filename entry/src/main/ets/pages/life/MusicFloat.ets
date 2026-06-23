@@ -34,7 +34,7 @@ struct MusicFloat {
 
         Column({ space: 2 }) {
           Text(this.songName)
-            .fontSize(24).fontWeight(FontWeight.Bold).fontColor(AppColors.TEXT_PRIMARY)
+            .fontSize(24).fontColor(AppColors.TEXT_PRIMARY)
             .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
           Text(this.singer)
             .fontSize(24).fontColor(AppColors.TEXT_SECONDARY)
@@ -71,7 +71,7 @@ struct MusicFloat {
     .height(52)
     .backgroundColor(AppColors.BG_CARD)
     .borderRadius(8)
-    .shadow({ radius: 8, color: '#33000000', offsetY: 2 })
+    .shadow({ radius: 8, color: '#0D000000', offsetY: 2 })
     .padding(0)
   }
 }

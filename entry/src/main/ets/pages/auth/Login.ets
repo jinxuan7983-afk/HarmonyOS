@@ -118,24 +118,6 @@ struct Login {
     Stack() {
       Scroll() {
         Column({ space: 0 }) {
-        // Logo区域
-        Image($r('app.media.logo'))
-          .width(88)
-          .height(88)
-          .borderRadius(24)
-          .margin({ top: 44 })
-
-        Text('高校校园助手')
-          .fontSize(32)
-          .fontWeight(700)
-          .fontColor(AppColors.PRIMARY)
-          .margin({ top: 14 })
-
-        Text('校园信息 · 学习助手 · 生活服务')
-          .fontSize(24)
-          .fontColor(AppColors.TEXT_SECONDARY)
-          .margin({ top: 8 })
-
         // ===== 标签栏 =====
         Row() {
           Column({ space: 8 }) {
@@ -269,7 +251,7 @@ struct Login {
         Text('欢迎使用高校校园助手APP。请您仔细阅读以下条款：\n\n一、用户信息保护\n我们仅收集您的学号、姓名等必要信息用于身份识别，不会泄露给第三方。\n\n二、使用规范\n您承诺不利用本APP进行任何违法违规活动。\n\n三、功能说明\n本APP为课程演示项目，所有数据均为本地存储，不会上传至服务器。\n\n四、免责声明\n本APP中的数据仅供参考，以学校官方通知为准。')
           .fontSize(24)
           .fontColor(AppColors.TEXT_TERTIARY)
-          .lineHeight(36)
+          .lineHeight(24 * AppColors.LINE_HEIGHT_AUX)
           .width('100%')
 
         Row({ space: 12 }) {
@@ -499,10 +481,10 @@ struct Login {
           .width(22).height(22)
           .onChange((checked: boolean) => { this.agreeProtocol = checked; })
         Text('我已阅读并同意')
-          .fontSize(24)
+          .fontSize(22)
           .fontColor(AppColors.TEXT_SECONDARY)
         Text('《用户注册协议》')
-          .fontSize(24)
+          .fontSize(22)
           .fontColor(AppColors.PRIMARY)
           .fontWeight(FontWeight.Bold)
           .onClick(() => { this.showProtocolModal = true; })
