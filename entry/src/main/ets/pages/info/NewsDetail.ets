@@ -237,7 +237,7 @@ struct NewsDetail {
           .fontColor(item === this.subCategory ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
           .padding({ left: 12, right: 12, top: 6, bottom: 6 })
           .backgroundColor(item === this.subCategory ? AppColors.PRIMARY : AppColors.DIVIDER)
-          .borderRadius(16)
+          .borderRadius(8)
           .onClick(() => {
             this.subCategory = item;
           })

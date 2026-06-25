@@ -3,7 +3,7 @@ import { DataManager } from '../../utils/DataManager';
 import { AppColors } from '../../common/constants/AppColors';
 import { ThemeUtil } from '../../common/utils/ThemeUtil';
 import { StatusBarUtil } from '../../common/utils/StatusBarUtil';
-import { NewsItem, QuickAction, TodoItem, TodoItemFull, CourseItem } from '../../common/constants/DataModels';
+import { NewsItem, QuickAction, TodoItemFull, CourseItem } from '../../common/constants/DataModels';
 import { InfoContent } from '../info/Info';
 import { StudyContent } from '../study/Study';
 import { LifeContent } from '../life/Life';
@@ -41,15 +41,16 @@ struct Home {
   @State iconScale: number = 1;
   @State gridEditMode: boolean = false;
 
-  @State todos: TodoItem[] = [
-    { title: '完成移动开发实验报告', done: false },
-    { title: '18:30 去图书馆还书', done: false },
-    { title: '整理课程表演示数据', done: true }
+  @State todos: TodoItemFull[] = [
+    { id: 1, title: '完成移动开发实验报告', category: '学习', done: false, remindTime: '18:00' },
+    { id: 2, title: '18:30 去图书馆还书', category: '生活', done: false, remindTime: '18:30' },
+    { id: 3, title: '整理课程表演示数据', category: '学习', done: true, remindTime: '14:00' }
   ];
   @State todoVersion: number = 0;
+  private todoIdCounter: number = 3;
 
   private syncFloatTodos(): void {
-    AppStorage.setOrCreate('floatTodos', this.todos.filter((t: TodoItem) => !t.done));
+    AppStorage.setOrCreate('floatTodos', this.todos.filter((t: TodoItemFull) => !t.done));
   }
 
   async aboutToAppear(): Promise<void> {
@@ -58,9 +59,16 @@ struct Home {
     // 从DataManager加载持久化的待办
     const savedTodos = await DataManager.loadTodosFull();
     if (savedTodos.length > 0) {
-      this.todos = savedTodos as TodoItem[];
+      this.todos = (savedTodos as TodoItemFull[]).map((t: TodoItemFull): TodoItemFull => ({
+        id: t.id || 0,
+        title: t.title || '',
+        category: t.category || '其他',
+        done: t.done || false,
+        remindTime: t.remindTime || '—'
+      }));
+      this.todoIdCounter = Math.max(3, ...this.todos.map((t: TodoItemFull) => t.id));
     }
-    AppStorage.setOrCreate('floatTodos', this.todos.filter((t: TodoItem) => !t.done));
+    AppStorage.setOrCreate('floatTodos', this.todos.filter((t: TodoItemFull) => !t.done));
     // 恢复九宫格自定义排序
     const savedOrder = await DataManager.loadGridOrder();
     if (savedOrder.length > 0) {
@@ -140,7 +148,7 @@ struct Home {
         .height(this.statusBarHeight)
         .backgroundColor(this.currentTab === 0 ? AppColors.BG_PAGE : ThemeUtil.cardBg(this.darkMode))
 
-      Tabs({ barPosition: BarPosition.End }) {
+      Tabs({ barPosition: BarPosition.End, index: this.currentTab }) {
         TabContent() {
           this.HomeContent()
         }
@@ -167,9 +175,7 @@ struct Home {
         .tabBar(this.TabBuilder(4, '我的', $r('sys.symbol.person')))
       }
       .scrollable(false)
-      .onChange((index: number) => {
-        this.currentTab = index;
-      })
+      .onChange((index: number) => { this.currentTab = index; })
       .barBackgroundColor(AppColors.BG_CARD)
       .borderWidth({ top: 1 })
       .borderColor(AppColors.BORDER)
@@ -552,7 +558,8 @@ struct Home {
               this.getUIContext()?.getPromptAction()?.showToast({ message: '请输入待办内容' });
               return;
             }
-            this.todos.unshift({ title: this.todoInput.trim(), done: false });
+            this.todoIdCounter += 1;
+            this.todos.unshift({ id: this.todoIdCounter, title: this.todoInput.trim(), category: '其他', done: false, remindTime: '—' });
             this.todoInput = '';
             this.syncFloatTodos();
             this.getUIContext()?.getPromptAction()?.showToast({ message: '已添加待办' });
@@ -561,7 +568,7 @@ struct Home {
       .width('100%')
 
       // 待办列表
-      ForEach(this.getVisibleTodos(), (todo: TodoItem, index: number) => {
+      ForEach(this.getVisibleTodos(), (todo: TodoItemFull, index: number) => {
         Row() {
           Checkbox()
             .select(todo.done)
@@ -598,14 +605,14 @@ struct Home {
       if (this.todos.length > 0 && this.todoVersion >= 0) {
         Row({ space: 8 }) {
           Progress({
-            value: this.todos.filter((t: TodoItem) => t.done).length,
+            value: this.todos.filter((t: TodoItemFull) => t.done).length,
             total: this.todos.length,
             type: ProgressType.Linear
           })
             .color(AppColors.SUCCESS)
             .backgroundColor(AppColors.PRIMARY_LIGHT)
             .layoutWeight(1)
-          Text(`${this.todos.filter((t: TodoItem) => t.done).length}/${this.todos.length}`)
+          Text(`${this.todos.filter((t: TodoItemFull) => t.done).length}/${this.todos.length}`)
             .fontSize(24)
             .fontColor(ThemeUtil.subColor(this.darkMode))
         }
@@ -618,9 +625,9 @@ struct Home {
     .shadow({ radius: 6, color: '#0D000000', offsetX: 0, offsetY: 2 })
   }
 
-  private getVisibleTodos(): TodoItem[] {
-    const undone = this.todos.filter((t: TodoItem) => !t.done);
-    const done = this.todos.filter((t: TodoItem) => t.done);
+  private getVisibleTodos(): TodoItemFull[] {
+    const undone = this.todos.filter((t: TodoItemFull) => !t.done);
+    const done = this.todos.filter((t: TodoItemFull) => t.done);
     return [...undone, ...done].slice(0, 5);
   }
 

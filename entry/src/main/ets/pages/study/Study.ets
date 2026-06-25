@@ -1,6 +1,7 @@
 import router from '@ohos.router';
 import { notificationManager } from '@kit.NotificationKit';
 import { wantAgent } from '@kit.AbilityKit';
+import picker from '@ohos.file.picker';
 import { fileIo } from '@kit.CoreFileKit';
 import { AppColors } from '../../common/constants/AppColors';
 import { ThemeUtil } from '../../common/utils/ThemeUtil';
@@ -117,7 +118,7 @@ export struct StudyContent {
   ];
 
   private bookFilters: string[] = ['全部', '已收藏', '想读', '已借'];
-  private materials: MaterialItem[] = [
+  @State materials: MaterialItem[] = [
     { name: '课件资料', icon: '📄' }, { name: '历年真题', icon: '📝' },
     { name: '实验报告', icon: '📋' }, { name: '参考论文', icon: '📚' }
   ];
@@ -371,7 +372,7 @@ export struct StudyContent {
               .fontColor(this.gradeSortBy === (sort === '成绩' ? 'score' : 'point') ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
               .padding({ left: 12, right: 12, top: 5, bottom: 5 })
               .backgroundColor(this.gradeSortBy === (sort === '成绩' ? 'score' : 'point') ? AppColors.PRIMARY : AppColors.DIVIDER)
-              .borderRadius(16)
+              .borderRadius(8)
               .onClick(() => {
                 if (this.gradeSortBy === (sort === '成绩' ? 'score' : 'point')) {
                   this.gradeSortDesc = !this.gradeSortDesc;
@@ -440,7 +441,7 @@ export struct StudyContent {
               .fontColor(f === this.bookFilter ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
               .padding({ left: 12, right: 12, top: 5, bottom: 5 })
               .backgroundColor(f === this.bookFilter ? AppColors.PRIMARY : AppColors.DIVIDER)
-              .borderRadius(16)
+              .borderRadius(8)
               .onClick(() => this.bookFilter = f)
           })
         }
@@ -552,7 +553,26 @@ export struct StudyContent {
 
       Button('上传本地资料').width('100%').height(48).fontSize(26 * this.fontScale)
         .fontColor(AppColors.BG_CARD).backgroundColor(AppColors.PRIMARY).borderRadius(8)
-        .onClick(() => this.getUIContext()?.getPromptAction()?.showToast({ message: '本地文件选择功能开发中' }))
+        .onClick(() => this.pickFile())
+    }
+  }
+
+  private async pickFile(): Promise<void> {
+    try {
+      const documentPicker = new picker.DocumentViewPicker(getContext(this));
+      const result: string[] = await documentPicker.select({
+        maxSelectNumber: 5
+      });
+      if (result && result.length > 0) {
+        for (const uri of result) {
+          const name = uri.split('/').pop() || `file_${Date.now()}`;
+          this.materials.push({ name: name, icon: '📁' });
+        }
+        this.getUIContext()?.getPromptAction()?.showToast({ message: `已导入 ${result.length} 个文件` });
+      }
+    } catch (e) {
+      console.error('pickFile error: ' + JSON.stringify(e));
+      this.getUIContext()?.getPromptAction()?.showToast({ message: '文件选择已取消或失败' });
     }
   }
 

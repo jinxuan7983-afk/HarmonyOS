@@ -44,19 +44,23 @@ export struct ProfileContent {
   @State todoVersion: number = 0;
   @State todos: TodoItemFull[] = [
     { id: 1, title: '完成移动开发实验报告', category: '学习', done: false, remindTime: '18:00' },
-    { id: 2, title: '18:30 去图书馆还书', category: '生活', done: false, remindTime: '18:00' },
+    { id: 2, title: '18:30 去图书馆还书', category: '生活', done: false, remindTime: '18:30' },
     { id: 3, title: '整理课程表演示数据', category: '学习', done: true, remindTime: '14:00' },
     { id: 4, title: '准备软件工程期末复习', category: '学习', done: false, remindTime: '20:00' },
     { id: 5, title: '参加社团活动策划会', category: '其他', done: false, remindTime: '16:30' }
   ];
   private todoCategories: string[] = ['学习', '生活', '其他'];
-
-  @State selectedFont: string = 'normal';
-  @State courseNotice: boolean = true;
-  @State announcementNotice: boolean = true;
-  @State todoNotice: boolean = true;
   @State cacheSize: string = '64.2MB';
   @State showCacheDialog: boolean = false;
+
+  // 初始示例数据（含完整字段，用于首次启动或旧数据修复）
+  private static readonly DEFAULT_TODOS: TodoItemFull[] = [
+    { id: 1, title: '完成移动开发实验报告', category: '学习', done: false, remindTime: '18:00' },
+    { id: 2, title: '18:30 去图书馆还书', category: '生活', done: false, remindTime: '18:30' },
+    { id: 3, title: '整理课程表演示数据', category: '学习', done: true, remindTime: '14:00' },
+    { id: 4, title: '准备软件工程期末复习', category: '学习', done: false, remindTime: '20:00' },
+    { id: 5, title: '参加社团活动策划会', category: '其他', done: false, remindTime: '16:30' }
+  ];
 
   async aboutToAppear(): Promise<void> {
     const userInfo: UserInfoData = await DataManager.loadUserInfo();
@@ -64,16 +68,35 @@ export struct ProfileContent {
     this.studentId = userInfo.account;
     this.college = userInfo.college;
     this.major = userInfo.major;
-    this.selectedFont = await DataManager.loadSettingString('fontSize', 'normal');
-    this.courseNotice = await DataManager.loadSettingBoolean('courseNotice', true);
-    this.announcementNotice = await DataManager.loadSettingBoolean('announcementNotice', true);
-    this.todoNotice = await DataManager.loadSettingBoolean('todoNotice', true);
     const savedTodos = await DataManager.loadTodosFull();
     if (savedTodos.length > 0) {
-      this.todos = savedTodos as TodoItemFull[];
-      if (this.todos.length > 0) {
-        this.todoIdCounter = Math.max(...this.todos.map((t: TodoItemFull) => t.id));
+      this.todos = (savedTodos as TodoItemFull[]).map((t: TodoItemFull): TodoItemFull => ({
+        id: t.id || 0,
+        title: t.title || '',
+        category: t.category || '其他',
+        done: t.done || false,
+        remindTime: t.remindTime || '—'
+      }));
+      // 按标题匹配初始数据，恢复丢失的 remindTime/category
+      const defaultMap = new Map<string, TodoItemFull>();
+      for (const d of ProfileContent.DEFAULT_TODOS) { defaultMap.set(d.title, d); }
+      for (let i = 0; i < this.todos.length; i++) {
+        const def = defaultMap.get(this.todos[i].title);
+        if (def && (this.todos[i].remindTime === '—' || !this.todos[i].remindTime)) {
+          this.todos[i] = {
+            id: this.todos[i].id,
+            title: this.todos[i].title,
+            category: def.category,
+            done: this.todos[i].done,
+            remindTime: def.remindTime
+          };
+        }
       }
+      if (this.todos.length > 0) {
+        this.todoIdCounter = Math.max(100, ...this.todos.map((t: TodoItemFull) => t.id));
+      }
+      // 回写修正后的数据，避免下次加载仍是旧值
+      DataManager.saveTodosFull(this.todos);
     }
     const savedCollections = await DataManager.loadCollections();
     if (savedCollections.length > 0) {
@@ -150,9 +173,47 @@ export struct ProfileContent {
             .width('100%').padding({ top: 8, bottom: 8 })
             .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
 
-            // 设置模块
-            Text('应用设置').fontSize(28 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode)).alignSelf(ItemAlign.Start)
-            this.SettingsPanel()
+            // 设置模块（常用设置内联 + 更多设置跳转）
+            Column({ space: 0 }) {
+              // 深色模式
+              Row() {
+                Text('🌙').fontSize(24)
+                Text('深色模式').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode)).layoutWeight(1).margin({ left: 10 })
+                Toggle({ type: ToggleType.Switch, isOn: this.darkMode })
+                  .selectedColor(AppColors.PRIMARY)
+                  .onChange((v: boolean) => { this.darkMode = v; DataManager.saveSettingBoolean('darkMode', v); })
+              }
+              .width('100%').height(48).padding({ left: 12, right: 12 })
+
+              Divider().color(AppColors.DIVIDER).strokeWidth(1).width('92%')
+
+              // 清理缓存
+              Row() {
+                Text('🗑').fontSize(24)
+                Text('清理缓存').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode)).layoutWeight(1).margin({ left: 10 })
+                Text(this.cacheSize).fontSize(24 * this.fontScale).fontColor(AppColors.TEXT_SECONDARY)
+                Text('清理').fontSize(22 * this.fontScale).fontColor(AppColors.BG_CARD)
+                  .padding({ left: 10, right: 10, top: 4, bottom: 4 }).backgroundColor(AppColors.WARNING).borderRadius(8)
+                  .margin({ left: 8 })
+                  .onClick(() => { this.showCacheDialog = true; })
+              }
+              .width('100%').height(48).padding({ left: 12, right: 12 })
+
+              Divider().color(AppColors.DIVIDER).strokeWidth(1).width('92%')
+
+              // 更多设置（跳转完整设置页）
+              Row() {
+                Text('⚙️').fontSize(24)
+                Text('更多设置').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode)).layoutWeight(1).margin({ left: 10 })
+                Text('›').fontSize(26 * this.fontScale).fontColor(AppColors.PRIMARY)
+              }
+              .width('100%').height(48).padding({ left: 12, right: 12 })
+              .onClick(() => router.pushUrl({ url: 'pages/profile/Settings' }))
+            }
+            .width('100%').backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+
+            // 缓存清理确认弹窗
+            if (this.showCacheDialog) { this.CacheDialog() }
 
             // 退出登录
             this.LogoutButton()
@@ -169,11 +230,6 @@ export struct ProfileContent {
         setTimeout(() => { this.refreshing = false; try { this.getUIContext()?.getPromptAction()?.showToast({ message: '刷新完成' }); } catch (e) {} }, 1500);
       })
       .refreshOffset(64).layoutWeight(1)
-
-      // 缓存清理确认弹窗
-      if (this.showCacheDialog) {
-        this.CacheDialog()
-      }
     }
     .width('100%').height('100%')
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
@@ -245,7 +301,7 @@ export struct ProfileContent {
               .fontColor(cat === this.collectionFilter ? AppColors.BG_CARD : ThemeUtil.subColor(this.darkMode))
               .padding({ left: 14, right: 14, top: 6, bottom: 6 })
               .backgroundColor(cat === this.collectionFilter ? AppColors.PRIMARY : (this.darkMode ? AppColors.BG_DARK_DIVIDER : AppColors.DIVIDER))
-              .borderRadius(16)
+              .borderRadius(8)
               .onClick(() => this.collectionFilter = cat)
           })
         }
@@ -287,66 +343,77 @@ export struct ProfileContent {
 
   // ===== 待办输入 =====
   @Builder TodoInput() {
-    Column({ space: 10 }) {
+    Column({ space: 8 }) {
+      // 第一行：输入框 + 添加按钮
       Row({ space: 8 }) {
         TextInput({ text: this.todoInput, placeholder: '输入待办内容...' })
-          .height(48).fontSize(26 * this.fontScale).backgroundColor(AppColors.BG_CARD).borderRadius(8).layoutWeight(1)
+          .height(44).fontSize(24 * this.fontScale).backgroundColor(AppColors.BG_CARD).borderRadius(8).layoutWeight(1)
           .onChange((v: string) => this.todoInput = v)
-      }
-
-      Row({ space: 8 }) {
-        ForEach(this.todoCategories, (cat: string) => {
-          Text(cat).fontSize(24 * this.fontScale)
-            .fontColor(cat === this.todoCategory ? AppColors.BG_CARD : ThemeUtil.subColor(this.darkMode))
-            .padding({ left: 14, right: 14, top: 6, bottom: 6 })
-            .backgroundColor(cat === this.todoCategory ? AppColors.PRIMARY : (this.darkMode ? AppColors.BG_DARK_DIVIDER : AppColors.DIVIDER))
-            .borderRadius(16)
-            .onClick(() => this.todoCategory = cat)
-        })
-        TextInput({ text: this.todoRemindTime, placeholder: '提醒时间' })
-          .height(36).fontSize(24 * this.fontScale).width(90).backgroundColor(AppColors.BG_CARD).borderRadius(8).padding({ left: 8, right: 8 })
-          .onChange((v: string) => this.todoRemindTime = v)
-        Button('添加').height(36).fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.PRIMARY).borderRadius(8)
-          .onClick(() => {
+        Button('添加').height(44).fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.PRIMARY).borderRadius(8)
+          .onClick(async () => {
             if (!this.todoInput.trim()) { this.getUIContext()?.getPromptAction()?.showToast({ message: '请输入待办内容' }); return; }
             this.todoIdCounter += 1;
-            this.todos.unshift({
-              id: this.todoIdCounter,
-              title: this.todoInput.trim(),
-              category: this.todoCategory, done: false,
-              remindTime: this.todoRemindTime || '—'
-            });
+            const newTodo: TodoItemFull = { id: this.todoIdCounter, title: this.todoInput.trim(), category: this.todoCategory, done: false, remindTime: this.todoRemindTime || '—' };
+            this.todos.unshift(newTodo);
             this.todoVersion += 1;
             this.todoInput = ''; this.todoRemindTime = '';
-              this.todoVersion += 1;
+            await DataManager.saveTodosFull(this.todos);
           })
       }
+      .width('100%')
+
+      // 第二行：分类标签（横向滚动）+ 提醒时间
+      Row() {
+        Scroll() {
+          Row({ space: 6 }) {
+            ForEach(this.todoCategories, (cat: string) => {
+              Text(cat).fontSize(22 * this.fontScale)
+                .fontColor(cat === this.todoCategory ? AppColors.BG_CARD : ThemeUtil.subColor(this.darkMode))
+                .padding({ left: 12, right: 12, top: 4, bottom: 4 })
+                .backgroundColor(cat === this.todoCategory ? AppColors.PRIMARY : (this.darkMode ? AppColors.BG_DARK_DIVIDER : AppColors.DIVIDER))
+                .borderRadius(16)
+                .onClick(() => this.todoCategory = cat)
+            })
+          }
+        }
+        .scrollable(ScrollDirection.Horizontal).scrollBar(BarState.Off).layoutWeight(1)
+
+        TextInput({ text: this.todoRemindTime, placeholder: '提醒' })
+          .height(32).fontSize(20 * this.fontScale).width(72).backgroundColor(AppColors.BG_CARD).borderRadius(16).padding({ left: 8, right: 8 })
+          .onChange((v: string) => this.todoRemindTime = v)
+      }
+      .width('100%').alignItems(VerticalAlign.Center)
     }
     .padding(14).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
   }
 
   @Builder BatchActions() {
-    Row({ space: 8 }) {
-      Button('全选').height(36).fontSize(24 * this.fontScale).fontColor(AppColors.PRIMARY).backgroundColor(AppColors.PRIMARY_LIGHT).borderRadius(8)
-        .onClick(() => { this.todos.forEach((t: TodoItemFull) => this.selectedIds.add(t.id));
-          this.selectedIds = new Set(this.selectedIds); })
-      Button('取消全选').height(36).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
-        .backgroundColor(this.darkMode ? AppColors.BG_DARK_DIVIDER : AppColors.DIVIDER).borderRadius(8)
-        .onClick(() => { this.selectedIds.clear(); this.selectedIds = new Set(); })
-      Blank()
-      Button('标记完成').height(36).fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.SUCCESS).borderRadius(8)
-        .onClick(() => {
-          this.todos.forEach((t: TodoItemFull) => { if (this.selectedIds.has(t.id)) t.done = true; });
-          this.todoVersion += 1;
-          this.selectedIds.clear(); this.getUIContext()?.getPromptAction()?.showToast({ message: '已批量标记完成' });
-        })
-      Button('删除').height(36).fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.DANGER).borderRadius(8)
-        .onClick(() => {
-          this.todos = this.todos.filter((t: TodoItemFull) => !this.selectedIds.has(t.id));
-          this.todoVersion += 1;
-          this.selectedIds.clear(); this.getUIContext()?.getPromptAction()?.showToast({ message: '已批量删除' });
-        })
+    Scroll() {
+      Row({ space: 6 }) {
+        Button('全选').height(32).fontSize(20 * this.fontScale).fontColor(AppColors.PRIMARY).backgroundColor(AppColors.PRIMARY_LIGHT).borderRadius(8)
+          .onClick(() => { this.todos.forEach((t: TodoItemFull) => this.selectedIds.add(t.id));
+            this.selectedIds = new Set(this.selectedIds); })
+        Button('取消').height(32).fontSize(20 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+          .backgroundColor(this.darkMode ? AppColors.BG_DARK_DIVIDER : AppColors.DIVIDER).borderRadius(8)
+          .onClick(() => { this.selectedIds.clear(); this.selectedIds = new Set(); })
+        Button('完成').height(32).fontSize(20 * this.fontScale).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.SUCCESS).borderRadius(8)
+          .onClick(async () => {
+            this.todos.forEach((t: TodoItemFull) => { if (this.selectedIds.has(t.id)) t.done = true; });
+            this.todoVersion += 1;
+            this.selectedIds.clear(); await DataManager.saveTodosFull(this.todos); this.getUIContext()?.getPromptAction()?.showToast({ message: '已批量标记完成' });
+          })
+        Button('删除').height(32).fontSize(20 * this.fontScale).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.DANGER).borderRadius(8)
+          .onClick(async () => {
+            this.todos = this.todos.filter((t: TodoItemFull) => !this.selectedIds.has(t.id));
+            this.todoVersion += 1;
+            this.selectedIds.clear(); await DataManager.saveTodosFull(this.todos); this.getUIContext()?.getPromptAction()?.showToast({ message: '已批量删除' });
+          })
+      }
+      .padding({ right: 6, top: 4, bottom: 4 })
     }
+    .scrollable(ScrollDirection.Horizontal)
+    .scrollBar(BarState.Off)
+    .width('100%')
   }
 
   @Builder TodoList() {
@@ -358,39 +425,42 @@ export struct ProfileContent {
         ForEach(this.todos.slice(0, this.todoCount), (todo: TodoItemFull, idx: number) => {
           ListItem() {
             Row() {
+              // 批量模式：批量选择勾选框；普通模式：完成状态勾选框
               if (this.batchMode) {
                 Checkbox().select(this.selectedIds.has(todo.id)).selectedColor(AppColors.PRIMARY)
                   .onChange((c: boolean) => {
                     if (c) this.selectedIds.add(todo.id); else this.selectedIds.delete(todo.id);
                     this.selectedIds = new Set(this.selectedIds);
-                  }).margin({ right: 8 })
+                  })
+              } else {
+                Checkbox().select(todo.done).selectedColor(AppColors.SUCCESS)
+                   .onChange(async (c: boolean) => { todo.done = c; this.todoVersion += 1; await DataManager.saveTodosFull(this.todos); })
               }
-              Checkbox().select(todo.done).selectedColor(AppColors.SUCCESS)
-                 .onChange((c: boolean) => { todo.done = c; this.todoVersion += 1; })
               Column({ space: 4 }) {
                 Text(todo.title)
-                  .fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
-                  .lineHeight(26 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
+                  .fontSize(24 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
+                  .lineHeight(24 * this.fontScale * AppColors.LINE_HEIGHT_BODY)
+                  .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
                   .decoration({ type: todo.done ? TextDecorationType.LineThrough : TextDecorationType.None })
-                Row({ space: 8 }) {
-                  Text(todo.category).fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD)
-                    .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+                Row({ space: 6 }) {
+                  Text(todo.category).fontSize(22 * this.fontScale).fontColor(AppColors.BG_CARD)
+                    .padding({ left: 6, right: 6, top: 1, bottom: 1 })
                     .backgroundColor(todo.category === '学习' ? AppColors.PRIMARY : (todo.category === '生活' ? AppColors.SUCCESS : AppColors.WARNING))
                     .borderRadius(4)
-                  Text(`⏰ ${todo.remindTime}`).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
+                  Text(`⏰${todo.remindTime}`).fontSize(20 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
                 }
               }
               .alignItems(HorizontalAlign.Start).layoutWeight(1).margin({ left: 8 })
               if (!this.batchMode) {
-                Text('删').fontSize(24 * this.fontScale).fontColor(AppColors.WARNING).backgroundColor(AppColors.WARNING_LIGHT).borderRadius(8)
-                  .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-                  .onClick(() => {
+                Text('✕').fontSize(22 * this.fontScale).fontColor(AppColors.DANGER).backgroundColor(AppColors.WARNING_LIGHT)
+                  .width(32).height(32).textAlign(TextAlign.Center).borderRadius(16)
+                  .onClick(async () => {
                     const realIdx = this.todos.indexOf(todo);
-                    if (realIdx >= 0) { this.todos.splice(realIdx, 1); this.todoVersion += 1; }
+                    if (realIdx >= 0) { this.todos.splice(realIdx, 1); this.todoVersion += 1; await DataManager.saveTodosFull(this.todos); }
                   })
               }
             }
-            .padding(14).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+            .padding(12).backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
           }
           .margin({ bottom: 8 })
         })
@@ -407,94 +477,21 @@ export struct ProfileContent {
     }
   }
 
-  // ===== 设置模块（内联深色模式Toggle+字体大小，符合规范2.8） =====
-  @Builder SettingsPanel() {
-    Column({ space: 0 }) {
-      // 深色模式 Toggle
-      Row() {
-        SymbolGlyph($r('sys.symbol.moon')).fontSize(24).fontColor([AppColors.PRIMARY]).width(28)
-        Text('深色模式').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
-          .layoutWeight(1).margin({ left: 10 })
-        Toggle({ type: ToggleType.Switch, isOn: this.darkMode })
-          .selectedColor(AppColors.PRIMARY)
-          .onChange((v: boolean) => {
-            this.darkMode = v;
-            DataManager.saveSettingBoolean('darkMode', v);
-          })
-      }
-      .width('100%').height(48).padding({ left: 16, right: 16 })
-      Divider().color(AppColors.DIVIDER).strokeWidth(1).width('94%')
-
-      // 字体大小 小/中/大 单选
-      Row() {
-        Text('Aa').fontSize(24).fontColor(AppColors.PRIMARY).width(28).textAlign(TextAlign.Center)
-        Text('字体大小').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
-          .layoutWeight(1).margin({ left: 10 })
-        Row({ space: 16 }) {
-          ForEach(['小', '中', '大'], (label: string, index: number) => {
-            Row({ space: 4 }) {
-              Radio({ value: `radio_${index}`, group: 'fontGroup' })
-                .checked(this.selectedFont === ['small', 'normal', 'large'][index])
-                .radioStyle({ checkedBackgroundColor: AppColors.PRIMARY })
-                .width(22).height(22)
-                .onChange((isChecked: boolean) => {
-                  if (isChecked) {
-                    const vals: string[] = ['small', 'normal', 'large'];
-                    const scales: number[] = [0.85, 1.0, 1.2];
-                    this.selectedFont = vals[index];
-                    this.fontScale = scales[index];
-                    DataManager.saveSettingString('fontSize', vals[index]);
-                  }
-                })
-              Text(label).fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode))
-            }
-          }, (item: string, index: number) => item)
-        }
-      }
-      .width('100%').height(48).padding({ left: 16, right: 16 })
-      Divider().color(AppColors.DIVIDER).strokeWidth(1).width('94%')
-
-      // 通知设置 - 跳转设置页
-      Row() {
-        SymbolGlyph($r('sys.symbol.bell')).fontSize(24).fontColor([AppColors.PRIMARY]).width(28)
-        Text('通知设置').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
-          .layoutWeight(1).margin({ left: 10 })
-        Text('›').fontSize(26 * this.fontScale).fontColor(AppColors.PRIMARY)
-      }
-      .width('100%').height(48).padding({ left: 16, right: 16 })
-      .onClick(() => router.pushUrl({ url: 'pages/profile/Settings' }))
-      Divider().color(AppColors.DIVIDER).strokeWidth(1).width('94%')
-
-      // 清理缓存
-      Row() {
-        SymbolGlyph($r('sys.symbol.trash')).fontSize(24).fontColor([AppColors.PRIMARY]).width(28)
-        Text('清理缓存').fontSize(26 * this.fontScale).fontColor(ThemeUtil.titleColor(this.darkMode))
-          .layoutWeight(1).margin({ left: 10 })
-        Text(this.cacheSize).fontSize(24 * this.fontScale).fontColor(AppColors.TEXT_SECONDARY)
-        Text('清理').fontSize(24 * this.fontScale).fontColor(AppColors.BG_CARD)
-          .padding({ left: 14, right: 14, top: 6, bottom: 6 })
-          .backgroundColor(AppColors.WARNING).borderRadius(8)
-          .margin({ left: 10 })
-          .onClick(() => { this.showCacheDialog = true; })
-      }
-      .width('100%').height(48).padding({ left: 16, right: 16 })
-    }
-    .width('100%').backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
-    .padding({ top: 6, bottom: 6 })
-  }
-
   // ===== 缓存清理确认弹窗 =====
   @Builder
   CacheDialog() {
     Column() {
-      Column({ space: 18 }) {
+      Column({ space: 16 }) {
         Text('清理缓存').fontSize(28).fontWeight(600).fontColor(AppColors.TEXT_PRIMARY)
-        Text('确定要清理本地缓存吗？\n将清除图片、音频及数据文件。').fontSize(24).fontColor(AppColors.TEXT_TERTIARY).lineHeight(24 * AppColors.LINE_HEIGHT_AUX).textAlign(TextAlign.Center)
+        Text('确定要清理本地缓存吗？\n将清除图片、音频及数据文件。').fontSize(24).fontColor(AppColors.TEXT_TERTIARY)
+          .lineHeight(24 * AppColors.LINE_HEIGHT_AUX).textAlign(TextAlign.Center)
         Text(`当前缓存：${this.cacheSize}`).fontSize(24).fontColor(AppColors.TEXT_SECONDARY)
         Row({ space: 12 }) {
-          Button('取消').layoutWeight(1).height(48).fontSize(26).fontColor(AppColors.TEXT_SECONDARY).backgroundColor(AppColors.DIVIDER).borderRadius(8)
+          Button('取消').layoutWeight(1).height(44).fontSize(26).fontColor(AppColors.TEXT_SECONDARY)
+            .backgroundColor(AppColors.DIVIDER).borderRadius(8)
             .onClick(() => { this.showCacheDialog = false; })
-          Button('确认清理').layoutWeight(1).height(48).fontSize(26).fontColor(AppColors.BG_CARD).backgroundColor(AppColors.WARNING).borderRadius(8)
+          Button('确认清理').layoutWeight(1).height(44).fontSize(26).fontColor(AppColors.BG_CARD)
+            .backgroundColor(AppColors.WARNING).borderRadius(8)
             .onClick(() => {
               this.cacheSize = '0MB';
               this.showCacheDialog = false;
@@ -504,7 +501,7 @@ export struct ProfileContent {
         }
         .width('100%')
       }
-      .width('80%').padding(24).backgroundColor(AppColors.BG_CARD).borderRadius(12)
+      .width('80%').padding(20).backgroundColor(AppColors.BG_CARD).borderRadius(8)
     }
     .width('100%').height('100%').justifyContent(FlexAlign.Center)
     .backgroundColor('#66000000')

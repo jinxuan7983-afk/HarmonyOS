@@ -237,7 +237,7 @@ struct Settings {
         }
         .width('100%')
       }
-      .width('80%').padding(24).backgroundColor(AppColors.BG_CARD).borderRadius(12)
+      .width('80%').padding(24).backgroundColor(AppColors.BG_CARD).borderRadius(8)
     }
     .width('100%').height('100%').justifyContent(FlexAlign.Center)
     .backgroundColor('#66000000')
@@ -260,7 +260,7 @@ struct Settings {
           .backgroundColor(AppColors.PRIMARY).borderRadius(8)
           .onClick(() => { this.showAboutDialog = false; })
       }
-      .width('80%').padding(24).backgroundColor(AppColors.BG_CARD).borderRadius(12)
+      .width('80%').padding(24).backgroundColor(AppColors.BG_CARD).borderRadius(8)
     }
     .width('100%').height('100%').justifyContent(FlexAlign.Center)
     .backgroundColor('#66000000')

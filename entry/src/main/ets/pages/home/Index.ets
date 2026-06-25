@@ -165,7 +165,7 @@ struct Index {
       angle: 160,
       colors: [
         [AppColors.PRIMARY, 0],
-        ['#4096FF', 1]
+        [AppColors.PRIMARY_GRADIENT_END, 1]
       ]
     })
     .onClick(() => {

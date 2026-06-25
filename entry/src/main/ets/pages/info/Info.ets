@@ -161,7 +161,7 @@ export struct InfoContent {
           .fontColor(item === this.noticeFilter ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
           .padding({ left: 14, right: 14, top: 6, bottom: 6 })
           .backgroundColor(item === this.noticeFilter ? AppColors.PRIMARY : AppColors.DIVIDER)
-          .borderRadius(16)
+          .borderRadius(8)
           .onClick(() => {
             this.noticeFilter = item;
             this.infoCount = 3;
@@ -244,23 +244,9 @@ export struct InfoContent {
         }
         .margin({ bottom: 12 })
        }, (item: NewsItem) => item.title + item.time)
-
-      if (this.infoCount < this.getFilteredData().length) {
-        ListItem() {
-          Row() {
-            if (this.loadingMore) {
-              LoadingProgress().width(20).height(20).color(AppColors.PRIMARY)
-              Text('加载中...').fontSize(24 * this.fontScale).fontColor(ThemeUtil.subColor(this.darkMode)).margin({ left: 8 })
-            } else {
-              Text('上拉加载更多').fontSize(24 * this.fontScale).fontColor(AppColors.PRIMARY)
-            }
-          }
-          .width('100%').height(48).justifyContent(FlexAlign.Center)
-          .onClick(() => this.loadMore())
-        }
-      }
     }
     .width('100%')
+    .onReachEnd(() => this.loadMore())
   }
 
   private getCategoryIcon(category: string): string {
@@ -320,7 +306,7 @@ export struct InfoContent {
               .fontColor(ThemeUtil.titleColor(this.darkMode))
               .padding({ left: 12, right: 12, top: 6, bottom: 6 })
               .backgroundColor(ThemeUtil.cardBg(this.darkMode))
-              .borderRadius(16)
+              .borderRadius(8)
               .border({ width: 1, color: AppColors.BORDER })
                .onClick(() => {
                  this.selectedBuilding = b;

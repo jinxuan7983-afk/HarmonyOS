@@ -8,6 +8,7 @@ export class AppColors {
   static readonly PRIMARY_DARK: string = '#0A3D8C';
   static readonly PRIMARY_LIGHT: string = '#E8F3FF';
   static readonly PRIMARY_BG: string = '#C6E2FF';
+  static readonly PRIMARY_GRADIENT_END: string = '#4096FF';
 
   // 功能色
   static readonly SUCCESS: string = '#00B42A';

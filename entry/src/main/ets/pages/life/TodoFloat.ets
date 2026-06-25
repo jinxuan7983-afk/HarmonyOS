@@ -3,13 +3,13 @@
  * 在应用后台时展示核心待办信息
  */
 import { AppColors } from '../../common/constants/AppColors';
-import { TodoItem } from '../../common/constants/DataModels';
+import { TodoItemFull } from '../../common/constants/DataModels';
 import window from '@ohos.window';
 
 @Entry
 @Component
 struct TodoFloat {
-  @StorageLink('floatTodos') todos: TodoItem[] = [];
+  @StorageLink('floatTodos') todos: TodoItemFull[] = [];
   @State todoVersion: number = 0;
 
   async aboutToAppear(): Promise<void> {
@@ -47,7 +47,7 @@ struct TodoFloat {
 
       // 待办列表
       List() {
-        ForEach(this.todos.filter((t: TodoItem) => !t.done), (todo: TodoItem, index: number) => {
+        ForEach(this.todos.filter((t: TodoItemFull): boolean => !t.done), (todo: TodoItemFull, index: number) => {
           ListItem() {
             Row({ space: 8 }) {
               Checkbox()
@@ -86,7 +86,7 @@ struct TodoFloat {
       // 底部进度提示
       Row() {
         Progress({
-          value: this.todos.filter((t: TodoItem) => t.done).length,
+          value: this.todos.filter((t: TodoItemFull): boolean => t.done).length,
           total: this.todos.length,
           type: ProgressType.Linear
         })
@@ -94,7 +94,7 @@ struct TodoFloat {
           .backgroundColor(AppColors.PRIMARY_LIGHT)
           .layoutWeight(1)
 
-        Text(`${this.todos.filter((t: TodoItem) => t.done).length}/${this.todos.length} 已完成`)
+        Text(`${this.todos.filter((t: TodoItemFull): boolean => t.done).length}/${this.todos.length} 已完成`)
           .fontSize(24)
           .fontColor(AppColors.TEXT_SECONDARY)
           .margin({ left: 8 })

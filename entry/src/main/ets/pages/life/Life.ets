@@ -8,6 +8,20 @@ import { ThemeUtil } from '../../common/utils/ThemeUtil';
 import { LostItem, FoodItem, SongItem } from '../../common/constants/DataModels';
 import { DataManager } from '../../utils/DataManager';
 
+// 快递物流信息
+interface ExpressInfo {
+  time: string;
+  location: string;
+  desc: string;
+}
+
+// 校历事件
+interface CalendarEvent {
+  date: string;
+  title: string;
+  type: string;
+}
+
 /**
  * 生活服务Tab内容组件
  * 从独立页面改为组件内嵌，由Home主容器通过Tabs切换
@@ -44,7 +58,7 @@ export struct LifeContent {
   @State foodImageUri: string = '';
 
   // 音乐播放器
-  @StorageLink('musicPlaying') playing: boolean = false;
+  @StorageLink('musicPlaying') @Watch('onPlayingChanged') playing: boolean = false;
   @StorageLink('musicSelectedIndex') @Watch('onMusicSelected') selectedSong: number = 0;
   @StorageLink('musicProgress') currentProgress: number = 0;
   @StorageLink('musicSongName') musicSongName: string = '';
@@ -74,6 +88,14 @@ export struct LifeContent {
   @State countdownSeconds: number = 0;
   @State countdownRunning: boolean = false;
   @State countdownRemaining: number = 0;
+
+  // 快递查询
+  @State showExpress: boolean = false;
+  @State expressNumber: string = '';
+  @State expressResult: ExpressInfo[] = [];
+
+  // 校历
+  @State showCalendar: boolean = false;
 
   private progressTimer: number = 0;
   private countdownTimer: number = 0;
@@ -140,6 +162,10 @@ export struct LifeContent {
               this.CalculatorPanel()
             } else if (this.showCountdown) {
               this.CountdownPanel()
+            } else if (this.showExpress) {
+              this.ExpressPanel()
+            } else if (this.showCalendar) {
+              this.CalendarPanel()
             } else {
               this.EntryGrid()
               if (this.tab === '失物招领') this.LostAndFound()
@@ -229,7 +255,7 @@ export struct LifeContent {
                 ((f === '校园卡' || f === '电子产品') && this.lostFilterCat === f) ? AppColors.WARNING :
                 (f === '全部' && this.lostFilterType === '全部' && this.lostFilterCat === '全部') ? AppColors.PRIMARY :
                 AppColors.DIVIDER)
-              .borderRadius(16)
+              .borderRadius(8)
               .onClick(() => {
                 if (f === '全部') { this.lostFilterType = '全部'; this.lostFilterCat = '全部'; }
                 else if (f === '失物' || f === '拾物') { this.lostFilterType = f; this.lostFilterCat = '全部'; }
@@ -320,7 +346,7 @@ export struct LifeContent {
             Text(cat).fontSize(24)
               .fontColor(cat === this.foodFilter ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
               .padding({ left: 14, right: 14, top: 6, bottom: 6 })
-              .backgroundColor(cat === this.foodFilter ? AppColors.WARNING : AppColors.WARNING_LIGHT).borderRadius(16)
+              .backgroundColor(cat === this.foodFilter ? AppColors.WARNING : AppColors.WARNING_LIGHT).borderRadius(8)
               .onClick(() => this.foodFilter = cat)
           })
         }
@@ -515,6 +541,24 @@ export struct LifeContent {
       this.musicSongName = this.songs[this.selectedSong].name;
       this.musicSinger = this.songs[this.selectedSong].singer;
       this.musicDuration = this.songs[this.selectedSong].duration;
+    }
+  }
+
+  /** 悬浮窗切换播放状态时联动控制 AVPlayer */
+  private async onPlayingChanged(): Promise<void> {
+    if (this.playing) {
+      const song = this.songs[this.selectedSong];
+      if (this.avPlayer && this.isAVPlayerReady) {
+        try { await this.avPlayer.play(); } catch (_) {}
+      } else {
+        await this.playSong(song);
+      }
+      this.simulateProgress();
+    } else {
+      if (this.avPlayer && this.isAVPlayerReady) {
+        try { await this.avPlayer.pause(); } catch (_) {}
+      }
+      this.stopProgress();
     }
   }
 
@@ -714,8 +758,12 @@ export struct LifeContent {
               this.calcWaitingForOperand = false;
             } else if (name === '倒计时') {
               this.showCountdown = true;
-            } else {
-              this.getUIContext()?.getPromptAction()?.showToast({ message: `${name}功能开发中` });
+            } else if (name === '快递查询') {
+              this.showExpress = true;
+              this.expressNumber = '';
+              this.expressResult = [];
+            } else if (name === '校历') {
+              this.showCalendar = true;
             }
           })
         }
@@ -732,6 +780,137 @@ export struct LifeContent {
       case '校历': return '📅';
       default: return '🔧';
     }
+  }
+
+  // ===== 快递查询 =====
+  @Builder ExpressPanel() {
+    Column({ space: 12 }) {
+      Row() {
+        Text('← 返回').fontSize(24).fontColor(AppColors.PRIMARY)
+          .onClick(() => { this.showExpress = false; })
+        Blank()
+        Text('快递查询').fontSize(26 * this.fontScale).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
+        Blank()
+        Text('').width(60)
+      }
+      .width('100%')
+
+      Row({ space: 10 }) {
+        TextInput({ text: this.expressNumber, placeholder: '输入快递单号' })
+          .fontSize(24)
+          .layoutWeight(1)
+          .height(48)
+          .onChange((v: string) => this.expressNumber = v)
+        Button('查询').height(48).fontSize(24).fontColor(AppColors.BG_CARD)
+          .backgroundColor(AppColors.PRIMARY).borderRadius(8)
+          .onClick(() => {
+            if (this.expressNumber.trim().length < 5) {
+              this.getUIContext()?.getPromptAction()?.showToast({ message: '请输入正确的快递单号' });
+              return;
+            }
+            // 模拟快递轨迹
+            this.expressResult = [
+              { time: '2026-06-25 08:30', location: '【配送中】', desc: '快件已到达 校园快递驿站' },
+              { time: '2026-06-24 22:15', location: '转运中心', desc: '快件已从 市分拨中心 发出' },
+              { time: '2026-06-24 14:00', location: '分拨中心', desc: '快件已到达 市分拨中心' },
+              { time: '2026-06-23 09:45', location: '已揽收', desc: '快递员已揽收' },
+              { time: '2026-06-22 18:00', location: '已下单', desc: '订单已提交' }
+            ];
+            this.getUIContext()?.getPromptAction()?.showToast({ message: '查询成功' });
+          })
+      }
+      .width('100%')
+
+      if (this.expressResult.length > 0) {
+        List() {
+          ForEach(this.expressResult, (item: ExpressInfo) => {
+            ListItem() {
+              Row({ space: 12 }) {
+                Column({ space: 4 }) {
+                  Text(item.time).fontSize(22).fontColor(AppColors.TEXT_SECONDARY)
+                  Text(item.desc).fontSize(24).fontColor(ThemeUtil.titleColor(this.darkMode))
+                }
+                .alignItems(HorizontalAlign.Start).layoutWeight(1)
+                Text(item.location).fontSize(22).fontColor(AppColors.PRIMARY)
+                  .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+                  .backgroundColor(AppColors.PRIMARY_LIGHT).borderRadius(4)
+              }
+              .width('100%').padding(12)
+              .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+              .margin({ bottom: 8 })
+            }
+          })
+        }
+        .width('100%').layoutWeight(1)
+      } else {
+        Column() {
+          Text('📦').fontSize(64)
+          Text('输入快递单号查询物流信息').fontSize(24).fontColor(AppColors.TEXT_SECONDARY).margin({ top: 12 })
+        }
+        .width('100%').layoutWeight(1).justifyContent(FlexAlign.Center).alignItems(HorizontalAlign.Center)
+      }
+    }
+    .width('100%')
+  }
+
+  // ===== 校历 =====
+  @Builder CalendarPanel() {
+    Column({ space: 12 }) {
+      Row() {
+        Text('← 返回').fontSize(24).fontColor(AppColors.PRIMARY)
+          .onClick(() => { this.showCalendar = false; })
+        Blank()
+        Text('校历').fontSize(26 * this.fontScale).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
+        Blank()
+        Text('').width(60)
+      }
+      .width('100%')
+
+      // 学期概览
+      Column({ space: 8 }) {
+        Text('2025-2026学年 第二学期').fontSize(26).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
+        Text('2026年2月23日 - 2026年7月4日').fontSize(22).fontColor(AppColors.TEXT_SECONDARY)
+      }
+      .width('100%').padding(16)
+      .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+
+      // 重要事件
+      Text('重要日程').fontSize(26).fontWeight(600).fontColor(ThemeUtil.titleColor(this.darkMode))
+        .width('100%').margin({ top: 4 })
+
+      List() {
+        ForEach([
+          { date: '02.23-02.24', title: '学生报到注册', type: '教学' },
+          { date: '02.25', title: '正式上课', type: '教学' },
+          { date: '04.14-04.18', title: '期中考试', type: '考试' },
+          { date: '04.30-05.05', title: '劳动节假期', type: '假期' },
+          { date: '06.22-06.28', title: '期末考试周', type: '考试' },
+          { date: '07.01', title: '暑假开始', type: '假期' }
+        ], (event: CalendarEvent) => {
+          ListItem() {
+            Row({ space: 14 }) {
+              Column({ space: 4 }) {
+                Text(event.date).fontSize(24).fontWeight(600).fontColor(AppColors.PRIMARY)
+              }
+              .width(100).alignItems(HorizontalAlign.Center)
+              .padding({ top: 4, bottom: 4 })
+
+              Column({ space: 4 }) {
+                Text(event.title).fontSize(26).fontColor(ThemeUtil.titleColor(this.darkMode))
+                Text(event.type).fontSize(22)
+                  .fontColor(event.type === '考试' ? AppColors.WARNING : event.type === '假期' ? AppColors.SUCCESS : AppColors.PRIMARY)
+              }
+              .alignItems(HorizontalAlign.Start).layoutWeight(1)
+            }
+            .width('100%').padding(12)
+            .backgroundColor(ThemeUtil.cardBg(this.darkMode)).borderRadius(8)
+          }
+          .margin({ bottom: 8 })
+        })
+      }
+      .width('100%').layoutWeight(1)
+    }
+    .width('100%')
   }
 
   // ===== 计算器 =====

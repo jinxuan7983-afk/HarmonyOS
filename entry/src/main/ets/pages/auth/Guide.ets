@@ -136,7 +136,7 @@ struct Guide {
               .width(12)
               .height(12)
               .fill(this.currentIndex === index ? AppColors.PRIMARY : Color.Transparent)
-              .stroke(this.currentIndex === index ? Color.Transparent : '#E5E6EB')
+              .stroke(this.currentIndex === index ? Color.Transparent : AppColors.DIVIDER)
               .strokeWidth(2)
               .animation({ duration: 300, curve: Curve.EaseInOut })
               .onClick(() => {

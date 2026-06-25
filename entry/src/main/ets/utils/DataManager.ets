@@ -281,6 +281,11 @@ export class DataManager {
       const todoFullPrefs = await preferences.getPreferences(getContext(), TODO_FULL_PREFS);
       await todoFullPrefs.clear();
       await todoFullPrefs.flush();
+
+      // 清理用户信息（会清除登录状态）
+      const userPrefs = await preferences.getPreferences(getContext(), USER_PREFS);
+      await userPrefs.clear();
+      await userPrefs.flush();
     } catch (err) {
       console.error('DataManager: 清理缓存失败');
     }

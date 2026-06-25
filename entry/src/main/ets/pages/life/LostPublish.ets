@@ -88,7 +88,7 @@ struct LostPublish {
                     .fontColor(cat === this.category ? AppColors.BG_CARD : AppColors.TEXT_TERTIARY)
                     .padding({ left: 14, right: 14, top: 7, bottom: 7 })
                     .backgroundColor(cat === this.category ? AppColors.PRIMARY : AppColors.DIVIDER)
-                    .borderRadius(16)
+                    .borderRadius(8)
                     .onClick(() => this.category = cat)
                 })
               }
@@ -139,8 +139,8 @@ struct LostPublish {
                   Image($r('app.media.foreground'))
                     .width(72).height(72).objectFit(ImageFit.Cover).borderRadius(8)
                   Text('✕')
-                    .fontSize(12).fontColor(AppColors.BG_CARD)
-                    .width(20).height(20).textAlign(TextAlign.Center)
+                    .fontSize(24).fontColor(AppColors.BG_CARD)
+                    .width(24).height(24).textAlign(TextAlign.Center)
                     .backgroundColor('#33000000').borderRadius(8)
                     .position({ x: 48, y: -6 })
             .onClick(async () => {
